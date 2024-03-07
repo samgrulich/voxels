@@ -1,0 +1,12 @@
+[submodule "libs/imgui"]
+	path = libs/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "libs/GLFW"]
+	path = libs/GLFW
+	url = https://github.com/glfw/glfw
+[submodule "libs/GLEW"]
+	path = libs/GLEW
+	url = https://github.com/nigels-com/glew
+[submodule "libs/glm"]
+	path = libs/glm
+	url = https://github.com/g-truc/glm
