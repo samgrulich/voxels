@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2) 
 
 project(voxels)
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/glcommon.h src/glcommon.cpp src/shader.h src/shape.h src/shader.cpp src/shape.cpp)
 
 # set(BUILD_SHARED_LIBS OFF)
 
@@ -24,10 +24,12 @@ add_library(
     libs/imgui/backends/imgui_impl_glfw.cpp
     libs/imgui/backends/imgui_impl_glfw.h
 )
-# add_subdirectory(libs/imgui)
+#file(GLOB V_GLOB LIST_DIRECTORIES true "*")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm)
+
+SET (CMAKE_CXX_FLAGS "-std=c++20 -g")
 
 
 # add_subdirectory(src) # add directory with another CMakeLists
