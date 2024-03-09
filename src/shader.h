@@ -24,16 +24,16 @@ class ShaderProgram {
         void bind();
         void unbind();
 
-        void set(std::string &name, int val);
-        void set(std::string &name, float val);
-        void set(std::string &name, float val1, float val2);
-        void set(std::string &name, float val1, float val2, float val3);
-        void set(std::string &name, float val1, float val2, float val3, float val4);
-        void set(std::string &name, float* mat);
-        void set(std::string &name, glm::vec2 vec); 
-        void set(std::string &name, glm::vec3 vec); 
-        void set(std::string &name, glm::vec4 vec); 
-        void set(std::string &name, glm::mat4 mat);
+        void set(std::string name, int val);
+        void set(std::string name, float val);
+        void set(std::string name, float val1, float val2);
+        void set(std::string name, float val1, float val2, float val3);
+        void set(std::string name, float val1, float val2, float val3, float val4);
+        void set(std::string name, float* mat);
+        void set(std::string name, glm::vec2 vec); 
+        void set(std::string name, glm::vec3 vec); 
+        void set(std::string name, glm::vec4 vec); 
+        void set(std::string name, glm::mat4 mat);
 
         int get_location(std::string &name);
         

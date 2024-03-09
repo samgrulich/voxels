@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2) 
 
 project(voxels)
-add_executable(${PROJECT_NAME} src/main.cpp src/glcommon.h src/glcommon.cpp src/shader.h src/shape.h src/shader.cpp src/shape.cpp)
+file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h" "src/*.hpp")
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 # set(BUILD_SHARED_LIBS OFF)
 
@@ -14,6 +15,7 @@ add_library(
     libs/imgui/imgui_draw.cpp
     libs/imgui/imgui_tables.cpp
     libs/imgui/imgui_widgets.cpp
+    libs/imgui/imgui_demo.cpp
     libs/imgui/imconfig.h
     libs/imgui/imgui.h
     libs/imgui/imgui_internal.h
@@ -27,7 +29,7 @@ add_library(
 #file(GLOB V_GLOB LIST_DIRECTORIES true "*")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui)
 
 SET (CMAKE_CXX_FLAGS "-std=c++20 -g")
 

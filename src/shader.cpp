@@ -43,6 +43,7 @@ ShaderProgram::ShaderProgram(const std::string &vertex_path, const std::string &
 
 ShaderProgram::~ShaderProgram() {
     // todo
+    glDeleteProgram(id);
 }
 
 int ShaderProgram::refresh() {
@@ -71,61 +72,61 @@ void ShaderProgram::unbind() {
     GLCall(glUseProgram(0));
 }
 
-void ShaderProgram::set(std::string &name, int val) {
+void ShaderProgram::set(std::string name, int val) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform1i(loc, val));
 }
 
-void ShaderProgram::set(std::string &name, float val) {
+void ShaderProgram::set(std::string name, float val) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform1f(loc, val));
 }
 
-void ShaderProgram::set(std::string &name, float val1, float val2) {
+void ShaderProgram::set(std::string name, float val1, float val2) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform2f(loc, val1, val2));
 }
 
-void ShaderProgram::set(std::string &name, float val1, float val2, float val3) {
+void ShaderProgram::set(std::string name, float val1, float val2, float val3) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform3f(loc, val1, val2, val3));
 }
 
-void ShaderProgram::set(std::string &name, float val1, float val2, float val3, float val4) {
+void ShaderProgram::set(std::string name, float val1, float val2, float val3, float val4) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform4f(loc, val1, val2, val3, val4));
 }
 
-void ShaderProgram::set(std::string &name, float* mat) {
+void ShaderProgram::set(std::string name, float* mat) {
     int loc = get_location(name);
     bind();
     GLCall(glUniformMatrix4fv(loc, 1, GL_FALSE, mat));
 }
 
-void ShaderProgram::set(std::string &name, glm::vec2 vec) {
+void ShaderProgram::set(std::string name, glm::vec2 vec) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform2f(loc, vec.x, vec.y));
 }
 
-void ShaderProgram::set(std::string &name, glm::vec3 vec) {
+void ShaderProgram::set(std::string name, glm::vec3 vec) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform3f(loc, vec.x, vec.y, vec.z));
 }
 
-void ShaderProgram::set(std::string &name, glm::vec4 vec) {
+void ShaderProgram::set(std::string name, glm::vec4 vec) {
     int loc = get_location(name);
     bind();
     GLCall(glUniform4f(loc, vec.x, vec.y, vec.z, vec.w));
 }
 
-void ShaderProgram::set(std::string &name, glm::mat4 mat) {
+void ShaderProgram::set(std::string name, glm::mat4 mat) {
     int loc = get_location(name);
     bind();
     GLCall(glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat)));
