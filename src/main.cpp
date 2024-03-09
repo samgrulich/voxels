@@ -61,11 +61,12 @@ int main(void) {
     // my init
     Camera cam(state.win, (float)win_size.x/win_size.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    Shape quadShape = quad(1.0);
+    Shape quadShape = cube(1.0);
     glm::vec4 clearColor = {0.046, 0.046, 0.064, 1.0};
 
     state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
+    glEnable(GL_DEPTH_TEST);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(state.win)) {
@@ -81,7 +82,7 @@ int main(void) {
 
 
         /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         basicShader.bind();
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.view_projection);

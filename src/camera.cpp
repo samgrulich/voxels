@@ -54,6 +54,10 @@ void Camera::handle_input(GLFWwindow *win, float delta_time) {
     glfwGetCursorPos(win, &cursorX, &cursorY);
     float offsetX = cursorX - m_cursorX;
     float offsetY = m_cursorY - cursorY;
+    if (glfwGetInputMode(win, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+        offsetX = 0.0f;
+        offsetY = 0.0f; 
+    }
     m_cursorX = cursorX;
     m_cursorY = cursorY;
     offsetX *= m_sensitivity;
