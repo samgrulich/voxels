@@ -10,7 +10,7 @@
 
 #include "camera.h"
 #include "shader.h"
-#include "shape.h"
+#include "chunk.h"
 
 
 static struct State {
@@ -72,7 +72,7 @@ int main(void) {
     // my init
     Camera cam(state.win, (float)state.win_size.x/state.win_size.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    Shape quadShape = cube(1.0);
+    Chunk chunk({0, -1, 0});
     glm::vec4 clearColor = {0.7, 0.7, 0.8, 1.0};
 
     state.cam = &cam;
@@ -81,7 +81,7 @@ int main(void) {
     glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     /* Loop until the user closes the window */
@@ -105,7 +105,8 @@ int main(void) {
         basicShader.bind();
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.view_projection);
-        quadShape.draw();
+
+        chunk.draw();
 
         // IMGUI Rendering
         ImGui::Render();

@@ -4,7 +4,6 @@
 #include <glm/ext.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <GLFW/glfw3.h>
-#include <iostream>
 
 #include "camera.h"
 
@@ -23,7 +22,7 @@ Camera::Camera(GLFWwindow *win, float aspect)
 
     yaw = -90.0f;
     pitch = 0.0f;
-    position = {0.0, 0.0, 3.5};
+    position = {0.0, 0.0, 2.5};
     m_front = {0.0, 0.0, -1.0};
     m_up = {0.0, 1.0, 0.0};
     m_right = {1.0, 0.0, 0.0};

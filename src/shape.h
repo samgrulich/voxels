@@ -76,6 +76,7 @@ class Shape {
         unsigned int m_ib;
 
     public:
+        Shape();
         Shape(std::vector<float> vertices, std::vector<unsigned int> indices);
         ~Shape();
 
