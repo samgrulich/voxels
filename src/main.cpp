@@ -72,7 +72,7 @@ int main(void) {
     // my init
     Camera cam(state.win, (float)state.win_size.x/state.win_size.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    Chunk chunk({0, -1, 0});
+    World world;
     glm::vec4 clearColor = {0.7, 0.7, 0.8, 1.0};
 
     state.cam = &cam;
@@ -106,7 +106,7 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.view_projection);
 
-        chunk.draw();
+        world.draw();
 
         // IMGUI Rendering
         ImGui::Render();
