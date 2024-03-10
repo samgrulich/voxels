@@ -20,10 +20,10 @@ Camera::Camera(GLFWwindow *win, float aspect)
     m_near = 0.01f;
     m_far = 1000.0f;
 
-    yaw = -90.0f;
+    yaw = 90.0f;
     pitch = 0.0f;
-    position = {0.0, 0.0, 2.5};
-    m_front = {0.0, 0.0, -1.0};
+    position = {0.0, 0.0, -10.5};
+    m_front = {0.0, 0.0, 1.0};
     m_up = {0.0, 1.0, 0.0};
     m_right = {1.0, 0.0, 0.0};
     m_view = glm::mat4(1.0);
@@ -32,7 +32,6 @@ Camera::Camera(GLFWwindow *win, float aspect)
 
     // matrices setup
     glfwGetCursorPos(win, &m_cursorX, &m_cursorY);
-    // m_view = glm::translate(m_view, position);
     m_view = glm::lookAtRH(position, position+m_front, m_up);
     m_projection = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);
     view_projection = m_projection * m_view;

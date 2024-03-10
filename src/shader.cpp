@@ -52,8 +52,8 @@ int ShaderProgram::refresh() {
     
     GLCall(glDetachShader(id, m_vertex));
     GLCall(glDetachShader(id, m_fragment));
-    GLCall(glDeleteShader(m_vertex));
-    GLCall(glDeleteShader(m_fragment));
+    // GLCall(glDeleteShader(m_vertex));
+    // GLCall(glDeleteShader(m_fragment));
 
     try {
         compile_and_link(); 

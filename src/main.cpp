@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -53,6 +54,7 @@ int main(void) {
 
     /* Make the window's context current */
     glfwMakeContextCurrent(state.win);
+    glfwSwapInterval(1);
     if(glewInit() != GLEW_OK) {
         std::cerr << "Error: Couldn't initalize OpenGL." << std::endl;
         return 1;
@@ -84,13 +86,21 @@ int main(void) {
     // glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    auto start = std::chrono::steady_clock::now();
+    auto last_frame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(state.win)) {
-        cam.handle_input(state.win, 1.0/60.0);
+        auto this_frame = std::chrono::steady_clock::now();
+        float frame_time = std::chrono::duration_cast<std::chrono::microseconds>(this_frame - last_frame).count() * 0.001;
+        float delta_time = frame_time * 0.001;
+        last_frame = std::chrono::steady_clock::now();
+
+        cam.handle_input(state.win, delta_time);
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        ImGui::Text("FPS: %.2f %.2fms", 1000.0/frame_time, frame_time);
         if (ImGui::ColorEdit3("Clear color", &clearColor.x)) {
             glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
         }
@@ -107,6 +117,8 @@ int main(void) {
         basicShader.set("u_MVP", cam.view_projection);
 
         world.draw();
+        world.generate_chunks();
+        basicShader.refresh();
 
         // IMGUI Rendering
         ImGui::Render();

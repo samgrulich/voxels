@@ -1,3 +1,5 @@
+#include <cmath>
+#include <iostream>
 #include <cstdint>
 #include <array>
 #include <vector>
@@ -36,9 +38,17 @@ Chunk::Chunk(glm::ivec3 position)
     GLCall(glGenBuffers(1, &m_ib));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
     
-    for (int i = 0; i < CHUNK_SIDE_POW3; i++) {
-        m_data[i] = 1u;
-    }
+    m_root = new Node;
+    
+    glm::ivec3 point = {0, 0, 0};
+    insertTo(&m_root, point, 1, point, 0, 0);
+    // for (int z = 0; z < CHUNK_SIDE; z++) {
+    //     for (int y = 0; y < CHUNK_SIDE; y++) {
+    //         for (int x = 0; x < CHUNK_SIDE; x++) {
+    //             set_block({x, y, z}, 1);
+    //         }
+    //     }
+    // }
 }
 
 Chunk::~Chunk() {
@@ -51,6 +61,14 @@ void Chunk::bind() {
     GLCall(glBindVertexArray(m_vao));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_vb));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
+}
+
+void Chunk::set_block(glm::ivec3 position, uint8_t value) {
+    insert(&m_root, position, value, position, 0);
+}
+
+uint8_t Chunk::get_block(glm::ivec3 position) {
+    return get(&m_root, position, position, 0);
 }
 
 void Chunk::unbind() {
@@ -149,6 +167,68 @@ glm::ivec3 Chunk::position_to_world(glm::ivec3 position) {
     return position + m_position * CHUNK_SIDE;
 }
 
+void Chunk::insert(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth) {
+    insertTo(node, point, value, position, depth, m_depth);
+}
+
+void Chunk::insertTo(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth, int maxDepth) {
+    if (*node == nullptr) {
+        *node = new Node;
+    }
+
+    (*node)->data = value;
+    if (depth == maxDepth) {
+        (*node)->isLeaf = true;
+        return;
+    }
+
+    float size = m_size / std::exp2(depth);
+
+    glm::ivec3 childPos = {
+        point.x >= (size * position.x) + (size / 2.f),
+        point.y >= (size * position.y) + (size / 2.f),
+        point.z >= (size * position.z) + (size / 2.f),
+    };
+
+    int childIndex = (childPos.x << 0) | (childPos.y << 1) | (childPos.z << 2);
+
+    position = {
+        (position.x << 1) | childPos.x,
+        (position.y << 1) | childPos.y,
+        (position.z << 1) | childPos.z,
+    };
+
+    insert(&(*node)->children[childIndex], point, value, position, ++depth);
+}
+
+uint8_t Chunk::get(Node** node, glm::ivec3 point, glm::ivec3 position, int depth) {
+    if (*node == nullptr) {
+        return 0;
+    }
+
+    if ((*node)->isLeaf) {
+        return (*node)->data;
+    }
+
+    float size = m_size / std::exp2(depth);
+
+    glm::ivec3 childPos = {
+        point.x >= (size * position.x) + (size / 2.f),
+        point.y >= (size * position.y) + (size / 2.f),
+        point.z >= (size * position.z) + (size / 2.f),
+    };
+
+    int childIndex = (childPos.x << 0) | (childPos.y << 1) | (childPos.z << 2);
+
+    position = {
+        (position.x << 1) | childPos.x,
+        (position.y << 1) | childPos.y,
+        (position.z << 1) | childPos.z,
+    };
+
+    return get(&(*node)->children[childIndex], point, position, ++depth);
+}
+
 void Chunk::generate(World& world) {
     for (int z = 0; z < CHUNK_SIDE; z++) {
         for (int y = 0; y < CHUNK_SIDE; y++) {
@@ -213,8 +293,9 @@ World::World() {
         }
     }
     for (int i = 0; i < m_chunks.size(); i++) {
-        m_chunks[i].generate(*this);
+        m_to_generate.push(&m_chunks[i]);
     }
+    generate_chunks();
 }
 
 World::~World() { }
@@ -263,12 +344,21 @@ uint8_t World::get_block(glm::ivec3 position) {
     if (is_position_outside(position))
         return 0;
     Chunk& chunk = m_chunks[get_chunk_index(position)];
-    return chunk.m_data[get_block_index(position)];
+    return chunk.get_block(get_block_position(position));
+}
+
+void World::generate_chunks() {
+    if (m_to_generate.size() == 0)
+        return;
+    Chunk* chunk = m_to_generate.front();
+    chunk->generate(*this);
+    m_generated.push_back(chunk);
+    m_to_generate.pop();
 }
 
 void World::draw() {
-    for (int i = 0; i < m_chunks.size(); i++) {
-        m_chunks[i].draw();
+    for (int i = 0; i < m_generated.size(); i++) {
+        m_generated[i]->draw();
     }
 }
 
