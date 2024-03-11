@@ -22,7 +22,7 @@ Camera::Camera(GLFWwindow *win, float aspect)
 
     yaw = 90.0f;
     pitch = 0.0f;
-    position = {0.0, 0.0, -10.5};
+    position = {0.0, 70.0, -10.5};
     m_front = {0.0, 0.0, 1.0};
     m_up = {0.0, 1.0, 0.0};
     m_right = {1.0, 0.0, 0.0};

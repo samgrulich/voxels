@@ -1,5 +1,4 @@
 #include <cmath>
-#include <iostream>
 #include <cstdint>
 #include <array>
 #include <vector>
@@ -41,7 +40,8 @@ Chunk::Chunk(glm::ivec3 position)
     m_root = new Node;
     
     glm::ivec3 point = {0, 0, 0};
-    insertTo(&m_root, point, 1, point, 0, 0);
+    if (position.y < 2)
+        insertTo(&m_root, point, 1, point, 0, 0);
     // for (int z = 0; z < CHUNK_SIDE; z++) {
     //     for (int y = 0; y < CHUNK_SIDE; y++) {
     //         for (int x = 0; x < CHUNK_SIDE; x++) {
@@ -49,6 +49,10 @@ Chunk::Chunk(glm::ivec3 position)
     //         }
     //     }
     // }
+}
+
+Chunk::Chunk() {
+    Chunk({0, 0, 0});
 }
 
 Chunk::~Chunk() {
@@ -288,14 +292,11 @@ World::World() {
     for (int z = 0; z < m_view_distance; z++) {
         for (int y = 0; y < m_view_distance; y++) {
             for (int x = 0; x < m_view_distance; x++) {
-                m_chunks.push_back(Chunk({x, y, z}));
+                m_chunks[{x, y, z}] = Chunk({x, y, z});
+                m_to_generate.push(&m_chunks[{x, y, z}]);
             }
         }
     }
-    for (int i = 0; i < m_chunks.size(); i++) {
-        m_to_generate.push(&m_chunks[i]);
-    }
-    generate_chunks();
 }
 
 World::~World() { }
@@ -343,11 +344,18 @@ size_t World::get_block_index(glm::ivec3 position) {
 uint8_t World::get_block(glm::ivec3 position) {
     if (is_position_outside(position))
         return 0;
-    Chunk& chunk = m_chunks[get_chunk_index(position)];
-    return chunk.get_block(get_block_position(position));
+    glm::ivec3 chunk_position = get_chunk_position(position);
+    Chunk* chunk;
+    if (m_last_chunk != nullptr && m_last_chunk->m_position == chunk_position) {
+        chunk = m_last_chunk;
+    } else {
+        chunk = &m_chunks[chunk_position];
+        m_last_chunk = chunk;
+    }
+    return chunk->get_block(get_block_position(position));
 }
 
-void World::generate_chunks() {
+void World::generate_chunk() {
     if (m_to_generate.size() == 0)
         return;
     Chunk* chunk = m_to_generate.front();

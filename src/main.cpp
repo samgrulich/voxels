@@ -83,7 +83,7 @@ int main(void) {
     glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    // glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     auto start = std::chrono::steady_clock::now();
@@ -117,7 +117,7 @@ int main(void) {
         basicShader.set("u_MVP", cam.view_projection);
 
         world.draw();
-        world.generate_chunks();
+        world.generate_chunk();
         basicShader.refresh();
 
         // IMGUI Rendering

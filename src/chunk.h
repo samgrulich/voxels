@@ -1,9 +1,14 @@
 #pragma once 
 
 #include <cstdint>
+#include <functional>
+#include <map>
 #include <memory>
 #include <queue>
 #include <vector>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 #include "shape.h"
 
@@ -50,6 +55,7 @@ class Chunk {
         uint8_t get(Node** node, glm::ivec3 point, glm::ivec3 position, int depth);
     public:
         Chunk(glm::ivec3 position);
+        Chunk();
         ~Chunk();
 
         void set_block(glm::ivec3 position, uint8_t value);
@@ -62,12 +68,27 @@ class Chunk {
         void draw();
 };
 
+
+struct IVec3Comparator {
+    size_t operator()(const glm::ivec3& k) const {
+        return std::hash<int>()(k.x) ^ std::hash<int>()(k.y) ^ std::hash<int>()(k.z);
+    }
+    bool operator()(const glm::ivec3& a, const glm::ivec3& b) const {
+        return a == b;
+    }
+};
+
 class World {
     private:
         unsigned int m_view_distance = 6;
-        std::vector<Chunk> m_chunks = std::vector<Chunk>();
+        // todo: add caching to chunk retriving, add caching to chunk nodes
+        // todo: center loaded area arround player, add loading unloading new chunks
+        // todo: add multithreading
+        std::map<glm::ivec3, Chunk, IVec3Comparator> m_chunks = std::map<glm::ivec3, Chunk, IVec3Comparator>();
+        // std::vector<Chunk> m_chunks = std::vector<Chunk>();
         std::vector<Chunk*> m_generated = std::vector<Chunk*>();
         std::queue<Chunk*> m_to_generate = std::queue<Chunk*>();
+        Chunk* m_last_chunk;
     private:
         bool is_position_outside(glm::ivec3 position);
         glm::ivec3 get_chunk_position(glm::ivec3 position);
@@ -79,6 +100,7 @@ class World {
         ~World();
 
         uint8_t get_block(glm::ivec3 position);
-        void generate_chunks();
+        void generate_chunk();
+        void mesh_chunk();
         void draw();
 };
