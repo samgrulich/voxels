@@ -21,27 +21,27 @@
 
 
 Chunk::Chunk(glm::ivec3 position) 
-    : m_position(position)
+    : position_(position)
 {
-    m_vertices = std::vector<float>(0, DEFAULT_VERTICES_LEN);
-    m_indices = std::vector<unsigned int>(0, DEFAULT_INDICES_LEN);
+    vertices_ = std::vector<float>(0, DEFAULT_VERTICES_LEN);
+    indices_ = std::vector<unsigned int>(0, DEFAULT_INDICES_LEN);
 
-    GLCall(glGenVertexArrays(1, &m_vao));
-    GLCall(glBindVertexArray(m_vao));
+    GLCall(glGenVertexArrays(1, &VAO_));
+    GLCall(glBindVertexArray(VAO_));
     
-    GLCall(glGenBuffers(1, &m_vb));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_vb));
+    GLCall(glGenBuffers(1, &VB_));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, VB_));
 
-    m_layout = Vertex::get_layout();
+    layout_ = Vertex::getLayout();
 
-    GLCall(glGenBuffers(1, &m_ib));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
+    GLCall(glGenBuffers(1, &IB_));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
     
-    m_root = new Node;
+    root_ = new Node;
     
     glm::ivec3 point = {0, 0, 0};
     if (position.y < 2)
-        insertTo(&m_root, point, 1, point, 0, 0);
+        insertTo(&root_, point, 1, point, 0, 0);
 }
 
 Chunk::Chunk() {
@@ -49,23 +49,23 @@ Chunk::Chunk() {
 }
 
 Chunk::~Chunk() {
-    GLCall(glDeleteBuffers(1, &m_vao));
-    GLCall(glDeleteBuffers(1, &m_vb));
-    GLCall(glDeleteBuffers(1, &m_ib));
+    GLCall(glDeleteBuffers(1, &VAO_));
+    GLCall(glDeleteBuffers(1, &VB_));
+    GLCall(glDeleteBuffers(1, &IB_));
 }
 
 void Chunk::bind() {
-    GLCall(glBindVertexArray(m_vao));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_vb));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
+    GLCall(glBindVertexArray(VAO_));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, VB_));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
 }
 
-void Chunk::set_block(glm::ivec3 position, uint8_t value) {
-    insert(&m_root, position, value, position, 0);
+void Chunk::setBlock(glm::ivec3 position, uint8_t value) {
+    insert(&root_, position, value, position, 0);
 }
 
-uint8_t Chunk::get_block(glm::ivec3 position) {
-    return get(&m_root, position, position, 0);
+uint8_t Chunk::getBlock(glm::ivec3 position) {
+    return get(&root_, position, position, 0);
 }
 
 void Chunk::unbind() {
@@ -74,7 +74,7 @@ void Chunk::unbind() {
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 }
 
-void Chunk::add_face_x_plane(glm::ivec3 position, bool reversed) {
+void Chunk::addFaceXPlane(glm::ivec3 position, bool reversed) {
     unsigned int index_offset = faces++*4;
     unsigned int indices[] = {
         0u+index_offset, 1u+index_offset, 2u+index_offset,
@@ -85,7 +85,7 @@ void Chunk::add_face_x_plane(glm::ivec3 position, bool reversed) {
         1u+index_offset, 2u+index_offset, 3u+index_offset,
     };
 
-    glm::vec3 vertex_offset = position_to_world(position);
+    glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
         1.0f + vertex_offset.x,  0.0f + vertex_offset.y, 0.0f + vertex_offset.z, 1.0, 0.0, // 0
         0.0f + vertex_offset.x,  0.0f + vertex_offset.y, 0.0f + vertex_offset.z, 0.0, 0.0, // 1
@@ -93,14 +93,14 @@ void Chunk::add_face_x_plane(glm::ivec3 position, bool reversed) {
         0.0f + vertex_offset.x,  1.0f + vertex_offset.y, 0.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
-    m_vertices.insert(m_vertices.end(), std::begin(vertices), std::end(vertices));
+    vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
     if (!reversed)
-        m_indices.insert(m_indices.end(), std::begin(indices), std::end(indices));
+        indices_.insert(indices_.end(), std::begin(indices), std::end(indices));
     else 
-        m_indices.insert(m_indices.end(), std::begin(indices_reversed), std::end(indices_reversed));
+        indices_.insert(indices_.end(), std::begin(indices_reversed), std::end(indices_reversed));
 }
 
-void Chunk::add_face_y_plane(glm::ivec3 position, bool reversed) {
+void Chunk::addFaceZPlane(glm::ivec3 position, bool reversed) {
     unsigned int index_offset = faces++*4;
     unsigned int indices[] = {
         0u+index_offset, 1u+index_offset, 2u+index_offset,
@@ -111,7 +111,7 @@ void Chunk::add_face_y_plane(glm::ivec3 position, bool reversed) {
         1u+index_offset, 2u+index_offset, 3u+index_offset,
     };
 
-    glm::vec3 vertex_offset = position_to_world(position);
+    glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
         0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 1.0, 0.0, // 0
         0.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 0.0, // 1
@@ -119,14 +119,14 @@ void Chunk::add_face_y_plane(glm::ivec3 position, bool reversed) {
         0.0f + vertex_offset.x, 1.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
-    m_vertices.insert(m_vertices.end(), std::begin(vertices), std::end(vertices));
+    vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
     if (!reversed)
-        m_indices.insert(m_indices.end(), std::begin(indices), std::end(indices));
+        indices_.insert(indices_.end(), std::begin(indices), std::end(indices));
     else 
-        m_indices.insert(m_indices.end(), std::begin(indices_reversed), std::end(indices_reversed));
+        indices_.insert(indices_.end(), std::begin(indices_reversed), std::end(indices_reversed));
 }
 
-void Chunk::add_face_z_plane(glm::ivec3 position, bool reversed) {
+void Chunk::addFaceYPlane(glm::ivec3 position, bool reversed) {
     unsigned int index_offset = faces++*4;
     unsigned int indices[] = {
         0u+index_offset, 1u+index_offset, 2u+index_offset,
@@ -137,7 +137,7 @@ void Chunk::add_face_z_plane(glm::ivec3 position, bool reversed) {
         1u+index_offset, 2u+index_offset, 3u+index_offset,
     };
     
-    glm::vec3 vertex_offset = position_to_world(position);
+    glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
         1.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 1.0, 0.0, // 0
         0.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 0.0, // 1
@@ -145,14 +145,14 @@ void Chunk::add_face_z_plane(glm::ivec3 position, bool reversed) {
         0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
-    m_vertices.insert(m_vertices.end(), std::begin(vertices), std::end(vertices));
+    vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
     if (!reversed)
-        m_indices.insert(m_indices.end(), std::begin(indices), std::end(indices));
+        indices_.insert(indices_.end(), std::begin(indices), std::end(indices));
     else 
-        m_indices.insert(m_indices.end(), std::begin(indices_reversed), std::end(indices_reversed));
+        indices_.insert(indices_.end(), std::begin(indices_reversed), std::end(indices_reversed));
 }
 
-bool Chunk::is_position_outside(glm::ivec3 position) {
+bool Chunk::isPosOutside(glm::ivec3 position) {
     return (
         position.x < 0 || position.x > CHUNK_SIDE-1
         || position.y < 0 || position.y > CHUNK_SIDE-1
@@ -160,12 +160,12 @@ bool Chunk::is_position_outside(glm::ivec3 position) {
     );
 }
 
-glm::ivec3 Chunk::position_to_world(glm::ivec3 position) {
-    return position + m_position * CHUNK_SIDE;
+glm::ivec3 Chunk::posToWorld(glm::ivec3 position) {
+    return position + position_ * CHUNK_SIDE;
 }
 
 void Chunk::insert(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth) {
-    insertTo(node, point, value, position, depth, m_depth);
+    insertTo(node, point, value, position, depth, depth_);
 }
 
 void Chunk::insertTo(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth, int maxDepth) {
@@ -179,7 +179,7 @@ void Chunk::insertTo(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 po
         return;
     }
 
-    float size = m_size / std::exp2(depth);
+    float size = size_ / std::exp2(depth);
 
     glm::ivec3 childPos = {
         point.x >= (size * position.x) + (size / 2.f),
@@ -207,7 +207,7 @@ uint8_t Chunk::get(Node** node, glm::ivec3 point, glm::ivec3 position, int depth
         return (*node)->data;
     }
 
-    float size = m_size / std::exp2(depth);
+    float size = size_ / std::exp2(depth);
 
     glm::ivec3 childPos = {
         point.x >= (size * position.x) + (size / 2.f),
@@ -231,15 +231,15 @@ void Chunk::generate(World& world) {
         for (int y = 0; y < CHUNK_SIDE; y++) {
             for (int x = 0; x < CHUNK_SIDE; x++) {
                 uint8_t opaqueBitmask = 0x0;
-                glm::ivec3 globalPos = position_to_world({x, y, z});
+                glm::ivec3 globalPos = posToWorld({x, y, z});
                 int mX = globalPos.x, mY = globalPos.y, mZ = globalPos.z;
-                uint8_t b =   world.get_block({mX, mY, mZ});
-                uint8_t bpx = world.get_block({mX+1, mY, mZ});
-                uint8_t bnx = world.get_block({mX-1, mY, mZ});
-                uint8_t bpy = world.get_block({mX, mY+1, mZ});
-                uint8_t bny = world.get_block({mX, mY-1, mZ});
-                uint8_t bpz = world.get_block({mX, mY, mZ+1});
-                uint8_t bnz = world.get_block({mX, mY, mZ-1});
+                uint8_t b =   world.getBlock({mX, mY, mZ});
+                uint8_t bpx = world.getBlock({mX+1, mY, mZ});
+                uint8_t bnx = world.getBlock({mX-1, mY, mZ});
+                uint8_t bpy = world.getBlock({mX, mY+1, mZ});
+                uint8_t bny = world.getBlock({mX, mY-1, mZ});
+                uint8_t bpz = world.getBlock({mX, mY, mZ+1});
+                uint8_t bnz = world.getBlock({mX, mY, mZ-1});
 
                 if (b == 0)
                     continue;
@@ -255,48 +255,50 @@ void Chunk::generate(World& world) {
                     continue;
 
                 if ((opaqueBitmask & ADJACENT_BITMASK_POS_X) == 0)
-                    add_face_y_plane({x+1, y, z}, true);
+                    addFaceZPlane({x+1, y, z}, true);
                 if ((opaqueBitmask & ADJACENT_BITMASK_NEG_X) == 0)
-                    add_face_y_plane({x, y, z}, false);
+                    addFaceZPlane({x, y, z}, false);
                 if ((opaqueBitmask & ADJACENT_BITMASK_POS_Y) == 0)
-                    add_face_z_plane({x, y+1, z}, true);
+                    addFaceYPlane({x, y+1, z}, true); // X
                 if ((opaqueBitmask & ADJACENT_BITMASK_NEG_Y) == 0)
-                    add_face_z_plane({x, y, z}, false);
+                    addFaceYPlane({x, y, z}, false);
                 if ((opaqueBitmask & ADJACENT_BITMASK_POS_Z) == 0)
-                    add_face_x_plane({x, y, z}, false);
+                    addFaceXPlane({x, y, z}, false); // Z
                 if ((opaqueBitmask & ADJACENT_BITMASK_NEG_Z) == 0)
-                    add_face_x_plane({x, y, z-1}, true);
+                    addFaceXPlane({x, y, z-1}, true);
             }
         }
     }
 
     bind();
-    m_layout.enableAttribs();
-    GLCall(glBufferData(GL_ARRAY_BUFFER, m_vertices.size()*sizeof(float), &m_vertices[0], GL_STATIC_DRAW));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size()*sizeof(unsigned int), &m_indices[0], GL_STATIC_DRAW));
+    layout_.enableAttribs();
+    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices_.size()*sizeof(float), &vertices_[0], GL_STATIC_DRAW));
+    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size()*sizeof(unsigned int), &indices_[0], GL_STATIC_DRAW));
 }
 
 void Chunk::draw() {
     bind();
-    GLCall(glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, NULL))
+    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL))
 }
 
 World::World() 
-    :m_last_chunk(nullptr)
+    :lastChunk_(nullptr)
 {
-    m_chunks = std::map<glm::ivec3, Chunk, IVec3Comparator>();
-    m_generated = std::vector<Chunk*>();
-    m_to_generate = std::queue<Chunk*>();
+    chunks_ = std::map<glm::ivec3, Chunk, IVec3Comparator>();
+    generated_ = std::vector<Chunk*>();
+    toGenerate_ = std::queue<Chunk*>();
 
-    int max = m_view_distance / 2;
-    int min = -max;
+    glm::ivec3 start(-viewDistance_/2);
+    glm::ivec3 end = -start;
+    start_ = start;
+    end_ = end;
 
-    for (int z = 0; z < max; z++) {
-        for (int y = 0; y < max; y++) {
-            for (int x = 0; x < max; x++) {
+    for (int z = start.z; z < end.z; z++) {
+        for (int y = start.y; y < end.y; y++) {
+            for (int x = start.x; x < end.x; x++) {
                 glm::ivec3 position(x, y, z);
-                m_chunks[position] = Chunk(position);
-                m_to_generate.push(&(m_chunks.find(position)->second));
+                chunks_[position] = Chunk(position);
+                toGenerate_.push(&(chunks_.find(position)->second));
             }
         }
     }
@@ -304,15 +306,15 @@ World::World()
 
 World::~World() { }
 
-bool World::is_position_outside(glm::ivec3 position) {
+bool World::isPositionOutside(glm::ivec3 position) {
     return (
-        position.x < 0 || position.x > (m_view_distance*CHUNK_SIDE-1)
-        || position.y < 0 || position.y > (m_view_distance*CHUNK_SIDE-1)
-        || position.z < 0 || position.z > (m_view_distance*CHUNK_SIDE-1)
+        position.x < start_.x*CHUNK_SIDE+1 || position.x > (end_.x*CHUNK_SIDE-1)
+        || position.y < start_.y*CHUNK_SIDE+1 || position.y > (end_.y*CHUNK_SIDE-1)
+        || position.z < start_.z*CHUNK_SIDE+1 || position.z > (end_.z*CHUNK_SIDE-1)
     );
 }
 
-glm::ivec3 World::get_chunk_position(glm::ivec3 position) {
+glm::ivec3 World::getChunkPosition(glm::ivec3 position) {
     glm::ivec3 result = position / CHUNK_SIDE;
     if (position.x < 0)
         result.x--;
@@ -323,7 +325,7 @@ glm::ivec3 World::get_chunk_position(glm::ivec3 position) {
     return result;
 }
 
-glm::ivec3 World::get_block_position(glm::ivec3 position) {
+glm::ivec3 World::getBlockPosition(glm::ivec3 position) {
     glm::ivec3 result = position % CHUNK_SIDE;
     if (result.x < 0)
         result.x += CHUNK_SIDE;
@@ -334,46 +336,46 @@ glm::ivec3 World::get_block_position(glm::ivec3 position) {
     return result;
 }
 
-size_t World::get_chunk_index(glm::ivec3 position) {
-    glm::ivec3 chunkPos = get_chunk_position(position);
-    return chunkPos.z * m_view_distance*m_view_distance + chunkPos.y * m_view_distance + chunkPos.x;
+size_t World::getChunkIndex(glm::ivec3 position) {
+    glm::ivec3 chunkPos = getChunkPosition(position);
+    return chunkPos.z * viewDistance_*viewDistance_ + chunkPos.y * viewDistance_ + chunkPos.x;
 }
 
-size_t World::get_block_index(glm::ivec3 position) {
-    glm::ivec3 blockPos = get_block_position(position);
+size_t World::getBlockIndex(glm::ivec3 position) {
+    glm::ivec3 blockPos = getBlockPosition(position);
     return blockPos.z * CHUNK_SIDE_POW2 + blockPos.y * CHUNK_SIDE + blockPos.x;
 }
 
-uint8_t World::get_block(glm::ivec3 position) {
-    if (is_position_outside(position))
+uint8_t World::getBlock(glm::ivec3 position) {
+    if (isPositionOutside(position))
         return 0;
-    glm::ivec3 chunk_position = get_chunk_position(position);
+    glm::ivec3 chunk_position = getChunkPosition(position);
     Chunk* chunk;
-    if (m_last_chunk != nullptr 
-        && m_last_chunk->m_position.x == chunk_position.x
-        && m_last_chunk->m_position.y == chunk_position.y
-        && m_last_chunk->m_position.z == chunk_position.z
+    if (lastChunk_ != nullptr 
+        && lastChunk_->position_.x == chunk_position.x
+        && lastChunk_->position_.y == chunk_position.y
+        && lastChunk_->position_.z == chunk_position.z
     ) {
-        chunk = m_last_chunk;
+        chunk = lastChunk_;
     } else {
-        chunk = &m_chunks[chunk_position];
-        m_last_chunk = chunk;
+        chunk = &chunks_[chunk_position];
+        lastChunk_ = chunk;
     }
-    return chunk->get_block(get_block_position(position));
+    return chunk->getBlock(getBlockPosition(position));
 }
 
-void World::generate_chunk() {
-    if (m_to_generate.size() == 0)
+void World::generateChunk() {
+    if (toGenerate_.size() == 0)
         return;
-    Chunk* chunk = m_to_generate.front();
+    Chunk* chunk = toGenerate_.front();
     chunk->generate(*this);
-    m_generated.push_back(chunk);
-    m_to_generate.pop();
+    generated_.push_back(chunk);
+    toGenerate_.pop();
 }
 
 void World::draw() {
-    for (int i = 0; i < m_generated.size(); i++) {
-        m_generated[i]->draw();
+    for (int i = 0; i < generated_.size(); i++) {
+        generated_[i]->draw();
     }
 }
 

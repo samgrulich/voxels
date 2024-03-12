@@ -21,10 +21,10 @@ add_library(
     libs/imgui/imgui_internal.h
     libs/imgui/imstb_textedit.h
     libs/imgui/imstb_truetype.h
-    libs/imgui/backends/imgui_impl_opengl3.cpp
-    libs/imgui/backends/imgui_impl_opengl3.h
-    libs/imgui/backends/imgui_impl_glfw.cpp
-    libs/imgui/backends/imgui_impl_glfw.h
+    libs/imgui/imgui_impl_opengl3.cpp
+    libs/imgui/imgui_impl_opengl3.h
+    libs/imgui/imgui_impl_glfw.cpp
+    libs/imgui/imgui_impl_glfw.h
 )
 #file(GLOB V_GLOB LIST_DIRECTORIES true "*")
 

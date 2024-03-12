@@ -11,55 +11,55 @@
 
 
 Camera::Camera(GLFWwindow *win, float aspect)
-    : m_aspect(aspect)
+    : aspect_(aspect)
 {
-    m_speed = 3.5f;
-    m_sensitivity = 0.07f;
+    speed_ = 3.5f;
+    sensitivity_ = 0.07f;
 
-    m_fov = 60.0f;
-    m_near = 0.01f;
-    m_far = 1000.0f;
+    fov_ = 60.0f;
+    near_ = 0.01f;
+    far_ = 1000.0f;
 
     yaw = 90.0f;
     pitch = 0.0f;
     position = {0.0, 70.0, -10.5};
-    m_front = {0.0, 0.0, 1.0};
-    m_up = {0.0, 1.0, 0.0};
-    m_right = {1.0, 0.0, 0.0};
-    m_view = glm::mat4(1.0);
-    m_projection = glm::mat4(1.0);
-    view_projection = glm::mat4(1.0);
+    front_ = {0.0, 0.0, 1.0};
+    up_ = {0.0, 1.0, 0.0};
+    right_ = {1.0, 0.0, 0.0};
+    view_ = glm::mat4(1.0);
+    projection_ = glm::mat4(1.0);
+    viewProjection = glm::mat4(1.0);
 
     // matrices setup
-    glfwGetCursorPos(win, &m_cursorX, &m_cursorY);
-    m_view = glm::lookAtRH(position, position+m_front, m_up);
-    m_projection = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);
-    view_projection = m_projection * m_view;
+    glfwGetCursorPos(win, &cursorX_, &cursorY_);
+    view_ = glm::lookAtRH(position, position+front_, up_);
+    projection_ = glm::perspective(glm::radians(fov_), aspect_, near_, far_);
+    viewProjection = projection_ * view_;
 }
 
 Camera::~Camera() {
 
 }
 
-void Camera::update_aspect(float new_aspect) {
-    m_aspect = new_aspect;
-    m_projection = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);
-    view_projection = m_projection * m_view;
+void Camera::updateAspect(float newAspect) {
+    aspect_ = newAspect;
+    projection_ = glm::perspective(glm::radians(fov_), aspect_, near_, far_);
+    viewProjection = projection_ * view_;
 }
 
-void Camera::handle_input(GLFWwindow *win, float delta_time) {
+void Camera::handleInput(GLFWwindow *win, float deltaTime) {
     double cursorX, cursorY;
     glfwGetCursorPos(win, &cursorX, &cursorY);
-    float offsetX = cursorX - m_cursorX;
-    float offsetY = m_cursorY - cursorY;
+    float offsetX = cursorX - cursorX_;
+    float offsetY = cursorY_ - cursorY;
     if (glfwGetInputMode(win, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
         offsetX = 0.0f;
         offsetY = 0.0f; 
     }
-    m_cursorX = cursorX;
-    m_cursorY = cursorY;
-    offsetX *= m_sensitivity;
-    offsetY *= m_sensitivity;
+    cursorX_ = cursorX;
+    cursorY_ = cursorY;
+    offsetX *= sensitivity_;
+    offsetY *= sensitivity_;
     yaw   += offsetX;
     pitch += offsetY;
 
@@ -68,24 +68,24 @@ void Camera::handle_input(GLFWwindow *win, float delta_time) {
     direction[0] = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     direction[1] = sin(glm::radians(pitch));
     direction[2] = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    m_front = glm::normalize(direction);
-    m_right = glm::cross({0.0, 1.0, 0.0}, m_front);
-    m_up    = glm::cross(m_front, m_right);
+    front_ = glm::normalize(direction);
+    right_ = glm::cross({0.0, 1.0, 0.0}, front_);
+    up_    = glm::cross(front_, right_);
     
     // handle keyboard
     // the IS_KEY_DOWN macro needs a variable of type GLFWwindow& named win
     glm::vec3 movement(0.0f);
     if (IS_KEY_DOWN(GLFW_KEY_W)) {
-        movement += m_front * 1.0f;
+        movement += front_ * 1.0f;
     }
     if (IS_KEY_DOWN(GLFW_KEY_S)) {
-        movement += m_front * -1.0f;
+        movement += front_ * -1.0f;
     }
     if (IS_KEY_DOWN(GLFW_KEY_A)) {
-        movement += m_right * 1.0f;
+        movement += right_ * 1.0f;
     }
     if (IS_KEY_DOWN(GLFW_KEY_D)) {
-        movement += m_right * -1.0f;
+        movement += right_ * -1.0f;
     }
     if (IS_KEY_DOWN(GLFW_KEY_SPACE)) {
         movement += glm::vec3(0, 1.0f, 0) * 1.0f;
@@ -97,8 +97,8 @@ void Camera::handle_input(GLFWwindow *win, float delta_time) {
     // handle math 
     if (glm::length(movement) != 0.0)
         movement = glm::normalize(movement);
-    glm::vec3 movement_delta = movement * -m_speed * delta_time;
+    glm::vec3 movement_delta = movement * -speed_ * deltaTime;
     position += movement_delta * -1.0f; // debuging for now
-    m_view = glm::lookAtRH(position, position+m_front, m_up);
-    view_projection = m_projection * m_view;
+    view_ = glm::lookAtRH(position, position+front_, up_);
+    viewProjection = projection_ * view_;
 }

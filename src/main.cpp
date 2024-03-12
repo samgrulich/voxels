@@ -16,18 +16,18 @@
 
 static struct State {
     GLFWwindow* win;
-    glm::ivec2 win_size = {800, 600};
+    glm::ivec2 winSize = {800, 600};
     Camera* cam;
-    bool draw_lines = true;
-} state;
+    bool drawLines = true;
+} s_state;
 
 // glfw callbacks
-void resize_callback(GLFWwindow* window, int width, int height);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void resizeCallback(GLFWwindow* window, int width, int height);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 // my funcs
-void change_draw_mode() {
-    if (state.draw_lines) {
+void changeDrawMode() {
+    if (s_state.drawLines) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -42,18 +42,18 @@ int main(void) {
     /* Create a windowed mode window and its OpenGL context */
     glfwWindowHint(GLFW_RESIZABLE, false);
     glfwWindowHint(GLFW_SAMPLES, 4);
-    state.win = glfwCreateWindow(state.win_size.x, state.win_size.y, "Hola", NULL, NULL);
-    if (!state.win) {
+    s_state.win = glfwCreateWindow(s_state.winSize.x, s_state.winSize.y, "Hola", NULL, NULL);
+    if (!s_state.win) {
         glfwTerminate();
         return -1;
     }
-    glfwSetInputMode(state.win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    glfwSetKeyCallback(state.win, key_callback);
+    glfwSetInputMode(s_state.win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetKeyCallback(s_state.win, keyCallback);
     // glfwSetWindowSizeCallback(state.win, resize_callback);
-    glfwSetFramebufferSizeCallback(state.win, resize_callback);
+    glfwSetFramebufferSizeCallback(s_state.win, resizeCallback);
 
     /* Make the window's context current */
-    glfwMakeContextCurrent(state.win);
+    glfwMakeContextCurrent(s_state.win);
     glfwSwapInterval(1);
     if(glewInit() != GLEW_OK) {
         std::cerr << "Error: Couldn't initalize OpenGL." << std::endl;
@@ -68,16 +68,16 @@ int main(void) {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(state.win, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+    ImGui_ImplGlfw_InitForOpenGL(s_state.win, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
     ImGui_ImplOpenGL3_Init();
 
     // my init
-    Camera cam(state.win, (float)state.win_size.x/state.win_size.y);
+    Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
     World world;
     glm::vec4 clearColor = {0.7, 0.7, 0.8, 1.0};
 
-    state.cam = &cam;
+    s_state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
     glFrontFace(GL_CCW);
     glCullFace(GL_FRONT);
@@ -87,25 +87,25 @@ int main(void) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     auto start = std::chrono::steady_clock::now();
-    auto last_frame = std::chrono::steady_clock::now();
+    auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(state.win)) {
-        auto this_frame = std::chrono::steady_clock::now();
-        float frame_time = std::chrono::duration_cast<std::chrono::microseconds>(this_frame - last_frame).count() * 0.001;
-        float delta_time = frame_time * 0.001;
-        last_frame = std::chrono::steady_clock::now();
+    while (!glfwWindowShouldClose(s_state.win)) {
+        auto thisFrame = std::chrono::steady_clock::now();
+        float frameTime = std::chrono::duration_cast<std::chrono::microseconds>(thisFrame - lastFrame).count() * 0.001;
+        float deltaTime = frameTime * 0.001;
+        lastFrame = std::chrono::steady_clock::now();
 
-        cam.handle_input(state.win, delta_time);
+        cam.handleInput(s_state.win, deltaTime);
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::Text("FPS: %.2f %.2fms", 1000.0/frame_time, frame_time);
+        ImGui::Text("FPS: %.2f %.2fms", 1000.0/frameTime, frameTime);
         if (ImGui::ColorEdit3("Clear color", &clearColor.x)) {
             glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
         }
-        if (ImGui::Checkbox("Draw lines", &state.draw_lines)) {
-            change_draw_mode();
+        if (ImGui::Checkbox("Draw lines", &s_state.drawLines)) {
+            changeDrawMode();
         }
         ImGui::DragFloat3("Position", &cam.position.x, 0.1f);
 
@@ -114,10 +114,10 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         basicShader.bind();
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
-        basicShader.set("u_MVP", cam.view_projection);
+        basicShader.set("u_MVP", cam.viewProjection);
 
         world.draw();
-        world.generate_chunk();
+        world.generateChunk();
         basicShader.refresh();
 
         // IMGUI Rendering
@@ -125,15 +125,15 @@ int main(void) {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         /* Swap front and back buffers */
-        glfwSwapBuffers(state.win);
+        glfwSwapBuffers(s_state.win);
 
         /* Poll for and process events */
         glfwPollEvents();
-        glm::ivec2 win_size;
-        glfwGetWindowSize(state.win, &win_size.x, &win_size.y);
-        if (state.win_size != win_size) {
-            glfwGetCursorPos(state.win, &cam.m_cursorX, &cam.m_cursorY);
-            state.win_size = win_size;
+        glm::ivec2 winSize;
+        glfwGetWindowSize(s_state.win, &winSize.x, &winSize.y);
+        if (s_state.winSize != winSize) {
+            glfwGetCursorPos(s_state.win, &cam.cursorX_, &cam.cursorY_);
+            s_state.winSize = winSize;
         }
     }
 
@@ -144,17 +144,17 @@ int main(void) {
     return 0;
 }
 
-void resize_callback(GLFWwindow* win, int width, int height) {
-    state.cam->update_aspect((float)width / height);
+void resizeCallback(GLFWwindow* win, int width, int height) {
+    s_state.cam->updateAspect((float)width / height);
     glViewport(0, 0, width, height);
 }
 
-void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) {
+void keyCallback(GLFWwindow* win, int key, int scancode, int action, int mods) {
     static bool cursor_hidden = false;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         if (cursor_hidden) {
             glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            glfwGetCursorPos(win, &state.cam->m_cursorX, &state.cam->m_cursorY);
+            glfwGetCursorPos(win, &s_state.cam->cursorX_, &s_state.cam->cursorY_);
         } else {
             glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
@@ -162,7 +162,7 @@ void key_callback(GLFWwindow* win, int key, int scancode, int action, int mods) 
     }
 
     if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-        state.draw_lines = !state.draw_lines;
-        change_draw_mode();
+        s_state.drawLines = !s_state.drawLines;
+        changeDrawMode();
     }
 }

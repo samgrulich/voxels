@@ -29,26 +29,26 @@ struct Node {
 
 class Chunk {
     public:
-        glm::ivec3 m_position;
+        glm::ivec3 position_;
     private:
-        int m_size;
-        int m_depth;
-        Node* m_root;
-        std::vector<float> m_vertices;
-        std::vector<unsigned int> m_indices;
+        int size_;
+        int depth_;
+        Node* root_;
+        std::vector<float> vertices_;
+        std::vector<unsigned int> indices_;
 
-        Vbl m_layout;
-        unsigned int m_vao;
-        unsigned int m_vb;
-        unsigned int m_ib;
+        Vbl layout_;
+        unsigned int VAO_;
+        unsigned int VB_;
+        unsigned int IB_;
         int faces = 0;
     private:
-        void add_face_x_plane(glm::ivec3 position, bool reversed);
-        void add_face_y_plane(glm::ivec3 position, bool reversed);
-        void add_face_z_plane(glm::ivec3 position, bool reversed);
+        void addFaceXPlane(glm::ivec3 position, bool reversed);
+        void addFaceYPlane(glm::ivec3 position, bool reversed);
+        void addFaceZPlane(glm::ivec3 position, bool reversed);
 
-        bool is_position_outside(glm::ivec3 position);
-        glm::ivec3 position_to_world(glm::ivec3 position);
+        bool isPosOutside(glm::ivec3 position);
+        glm::ivec3 posToWorld(glm::ivec3 position);
 
         void insert(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth);
         void insertTo(Node** node, glm::ivec3 point, uint8_t value, glm::ivec3 position, int depth, int maxDepth);
@@ -58,8 +58,8 @@ class Chunk {
         Chunk();
         ~Chunk();
 
-        void set_block(glm::ivec3 position, uint8_t value);
-        uint8_t get_block(glm::ivec3 position);
+        void setBlock(glm::ivec3 position, uint8_t value);
+        uint8_t getBlock(glm::ivec3 position);
 
         void bind();
         void unbind();
@@ -77,27 +77,31 @@ struct IVec3Comparator {
 
 class World {
     private:
-        int m_view_distance = 6;
-        // todo: center loaded area arround player, add loading unloading new chunks
+        int viewDistance_ = 6;
+        // todo: add loading unloading new chunks
         // todo: add multithreading
         // todo: add caching to chunk nodes
-        // std::vector<Chunk> m_chunks = std::vector<Chunk>();
-        std::map<glm::ivec3, Chunk, IVec3Comparator> m_chunks;
-        std::vector<Chunk*> m_generated;
-        std::queue<Chunk*> m_to_generate;
-        Chunk* m_last_chunk;
+        std::map<glm::ivec3, Chunk, IVec3Comparator> chunks_;
+        std::vector<Chunk*> generated_;
+        std::queue<Chunk*> toGenerate_;
+        Chunk* lastChunk_;
+        glm::ivec3 start_;
+        glm::ivec3 end_;
     private:
-        bool is_position_outside(glm::ivec3 position);
-        glm::ivec3 get_chunk_position(glm::ivec3 position);
-        glm::ivec3 get_block_position(glm::ivec3 position);
-        size_t get_chunk_index(glm::ivec3 position);
-        size_t get_block_index(glm::ivec3 position);
+        bool isPositionOutside(glm::ivec3 position);
+        glm::ivec3 getChunkPosition(glm::ivec3 position);
+        glm::ivec3 getBlockPosition(glm::ivec3 position);
+        size_t getChunkIndex(glm::ivec3 position);
+        size_t getBlockIndex(glm::ivec3 position);
+        void loadChunks();
+        void unloadChunks();
     public:
         World();
         ~World();
 
-        uint8_t get_block(glm::ivec3 position);
-        void generate_chunk();
-        void mesh_chunk();
+        uint8_t getBlock(glm::ivec3 position);
+        void generateChunk();
+        void meshChunk();
+        void updateRegion();
         void draw();
 };

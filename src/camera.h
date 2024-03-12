@@ -7,17 +7,17 @@ class Camera {
     public:
         float yaw, pitch;
         glm::vec3 position;
-        glm::mat4 view_projection;
-        double m_cursorX, m_cursorY;
+        glm::mat4 viewProjection;
+        double cursorX_, cursorY_;
     private:
-        float m_speed, m_sensitivity;
-        float m_fov, m_near, m_far, m_aspect;
-        glm::vec3 m_front, m_up, m_right;
-        glm::mat4 m_view, m_projection;
+        float speed_, sensitivity_;
+        float fov_, near_, far_, aspect_;
+        glm::vec3 front_, up_, right_;
+        glm::mat4 view_, projection_;
     public: 
         Camera(GLFWwindow *win, float aspect);
         ~Camera();
 
-        void update_aspect(float new_aspect);
-        void handle_input(GLFWwindow *win, float delta_time);
+        void updateAspect(float newAspect);
+        void handleInput(GLFWwindow *win, float deltaTime);
 };

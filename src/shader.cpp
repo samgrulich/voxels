@@ -15,7 +15,7 @@
 
 int create_shader_program(unsigned int type, const std::string &filepath) {
     GLCall(unsigned int id = glCreateShader(type));
-    std::string shader = read_file(filepath);
+    std::string shader = readFile(filepath);
     const char* shader_str = shader.c_str();
     GLCall(glShaderSource(id, 1, (const char* const*)(&shader_str), NULL));
     GLCall(glCompileShader(id));
@@ -33,12 +33,12 @@ int create_shader_program(unsigned int type, const std::string &filepath) {
     return id;
 }
 
-ShaderProgram::ShaderProgram(const std::string &vertex_path, const std::string &fragment_path) 
-    : m_uniforms(std::map<std::string, unsigned int>()), id(glCreateProgram()), 
-        m_vertex_path(vertex_path), m_fragment_path(fragment_path)
+ShaderProgram::ShaderProgram(const std::string &vertexPath, const std::string &fragmentPath) 
+    : uniforms_(std::map<std::string, unsigned int>()), id(glCreateProgram()), 
+        vertexPath_(vertexPath), fragmentPath_(fragmentPath)
 {
-    m_last_modified = get_latest_files_timestamp(vertex_path, fragment_path);
-    compile_and_link();
+    lastModified_ = getFilesTimestamp(vertexPath, fragmentPath);
+    compileAndLink();
 }
 
 ShaderProgram::~ShaderProgram() {
@@ -47,16 +47,16 @@ ShaderProgram::~ShaderProgram() {
 }
 
 int ShaderProgram::refresh() {
-    if (!shader_changed())
+    if (!shaderChanged())
         return 0;
     
-    GLCall(glDetachShader(id, m_vertex));
-    GLCall(glDetachShader(id, m_fragment));
+    GLCall(glDetachShader(id, vertex_));
+    GLCall(glDetachShader(id, fragment_));
     // GLCall(glDeleteShader(m_vertex));
     // GLCall(glDeleteShader(m_fragment));
 
     try {
-        compile_and_link(); 
+        compileAndLink(); 
     } catch (std::string msg) {
         std::cerr << "Warning: " << msg << std::endl;
         return 1;
@@ -73,82 +73,82 @@ void ShaderProgram::unbind() {
 }
 
 void ShaderProgram::set(std::string name, int val) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform1i(loc, val));
 }
 
 void ShaderProgram::set(std::string name, float val) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform1f(loc, val));
 }
 
 void ShaderProgram::set(std::string name, float val1, float val2) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform2f(loc, val1, val2));
 }
 
 void ShaderProgram::set(std::string name, float val1, float val2, float val3) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform3f(loc, val1, val2, val3));
 }
 
 void ShaderProgram::set(std::string name, float val1, float val2, float val3, float val4) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform4f(loc, val1, val2, val3, val4));
 }
 
 void ShaderProgram::set(std::string name, float* mat) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniformMatrix4fv(loc, 1, GL_FALSE, mat));
 }
 
 void ShaderProgram::set(std::string name, glm::vec2 vec) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform2f(loc, vec.x, vec.y));
 }
 
 void ShaderProgram::set(std::string name, glm::vec3 vec) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform3f(loc, vec.x, vec.y, vec.z));
 }
 
 void ShaderProgram::set(std::string name, glm::vec4 vec) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniform4f(loc, vec.x, vec.y, vec.z, vec.w));
 }
 
 void ShaderProgram::set(std::string name, glm::mat4 mat) {
-    int loc = get_location(name);
+    int loc = getLocation(name);
     bind();
     GLCall(glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mat)));
 }
 
-int ShaderProgram::get_location(std::string &name) {
+int ShaderProgram::getLocation(std::string &name) {
     int loc;
-    if(!m_uniforms.contains(name)) {
+    if(!uniforms_.contains(name)) {
         GLCall(loc = glGetUniformLocation(id, name.c_str()));
-        m_uniforms.emplace(name, loc);
+        uniforms_.emplace(name, loc);
     } else {
-        loc = m_uniforms[name];
+        loc = uniforms_[name];
     }
     return loc;
 }
 
-void ShaderProgram::compile_and_link() {
-    m_vertex = create_shader_program(GL_VERTEX_SHADER, m_vertex_path);
-    m_fragment = create_shader_program(GL_FRAGMENT_SHADER, m_fragment_path);
+void ShaderProgram::compileAndLink() {
+    vertex_ = create_shader_program(GL_VERTEX_SHADER, vertexPath_);
+    fragment_ = create_shader_program(GL_FRAGMENT_SHADER, fragmentPath_);
 
-    glAttachShader(id, m_vertex);
-    glAttachShader(id, m_fragment);
+    glAttachShader(id, vertex_);
+    glAttachShader(id, fragment_);
     glLinkProgram(id);
     glValidateProgram(id);
 
@@ -164,16 +164,16 @@ void ShaderProgram::compile_and_link() {
         throw std::format("Failed to {} program! ({})", type, message);
     }
 
-    glDeleteShader(m_vertex);
-    glDeleteShader(m_fragment);
+    glDeleteShader(vertex_);
+    glDeleteShader(fragment_);
 }
 
-bool ShaderProgram::shader_changed() {
-    long time = get_latest_files_timestamp(m_vertex_path, m_fragment_path);
-    return time != m_last_modified;
+bool ShaderProgram::shaderChanged() {
+    long time = getFilesTimestamp(vertexPath_, fragmentPath_);
+    return time != lastModified_;
 }
 
-int get_file_size(FILE *f) {
+int getFileSize(FILE *f) {
     fseek(f, 0L, SEEK_END); // from stackoverflow https://stackoverflow.com/questions/238603/how-can-i-get-a-files-size-in-c
     long sz = ftell(f);
     rewind(f);
@@ -181,7 +181,7 @@ int get_file_size(FILE *f) {
 }
 
 // function ---------------
-std::string read_file(const std::string &filepath) {
+std::string readFile(const std::string &filepath) {
     std::ifstream t(filepath.c_str());
     std::string str((std::istreambuf_iterator<char>(t)),
                      std::istreambuf_iterator<char>());
@@ -189,21 +189,21 @@ std::string read_file(const std::string &filepath) {
 }
 
 // function --------------
-long get_file_timestamp(const std::string &path) {
+long getFileTimestamp(const std::string &path) {
     auto time = std::filesystem::last_write_time(path);
     return time.time_since_epoch().count();
 }
 
 // function --------------
-long get_latest_files_timestamp(const std::string &p1, const std::string &p2) {
-    auto a = get_file_timestamp(p1);
-    auto b = get_file_timestamp(p2);
+long getFilesTimestamp(const std::string &p1, const std::string &p2) {
+    auto a = getFileTimestamp(p1);
+    auto b = getFileTimestamp(p2);
     return a > b ? a : b;
 }
 
 // function --------------
-bool check_file_change(const std::string &path, time_t last_time) {
-    long current = get_file_timestamp(path);
-    return current > last_time;
+bool fileChanged(const std::string &path, time_t lastestTime) {
+    long current = getFileTimestamp(path);
+    return current > lastestTime;
 }
 

@@ -5,35 +5,35 @@
 
 
 Shape::Shape(std::vector<float> vertices, std::vector<unsigned int> indices)
-    : m_vertices(vertices), m_indices(indices)
+    : vertices_(vertices), indices_(indices)
 {
     // vao
-    GLCall(glGenVertexArrays(1, &m_vao));
-    GLCall(glBindVertexArray(m_vao));
+    GLCall(glGenVertexArrays(1, &VAO_));
+    GLCall(glBindVertexArray(VAO_));
 
     // vb
-    GLCall(glGenBuffers(1, &m_vb));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, m_vb));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size()*Vertex::get_size(), &vertices[0], GL_STATIC_DRAW));
+    GLCall(glGenBuffers(1, &VB_));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, VB_));
+    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size()*Vertex::getSize(), &vertices[0], GL_STATIC_DRAW));
 
-    m_layout = Vertex::get_layout();
-    m_layout.enableAttribs();
+    layout_ = Vertex::getLayout();
+    layout_.enableAttribs();
 
     // ib
-    GLCall(glGenBuffers(1, &m_ib));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
+    GLCall(glGenBuffers(1, &IB_));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(unsigned int), &indices[0], GL_STATIC_DRAW));
 }
 
 Shape::~Shape() {
-    GLCall(glDeleteBuffers(1, &m_vao));
-    GLCall(glDeleteBuffers(1, &m_vb));
-    GLCall(glDeleteBuffers(1, &m_ib));
+    GLCall(glDeleteBuffers(1, &VAO_));
+    GLCall(glDeleteBuffers(1, &VB_));
+    GLCall(glDeleteBuffers(1, &IB_));
 }
 
 void Shape::bind() {
-    GLCall(glBindVertexArray(m_vao));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ib));
+    GLCall(glBindVertexArray(VAO_));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
 }
 
 void Shape::unbind() {
@@ -43,56 +43,50 @@ void Shape::unbind() {
 
 void Shape::draw() {
     bind();
-    GLCall(glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, NULL))
+    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL))
 }
 
-void Shape::draw_instanced(unsigned int count) {
+void Shape::drawInstanced(unsigned int count) {
     bind();
-    GLCall(glDrawElementsInstanced(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, NULL, count));
+    GLCall(glDrawElementsInstanced(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL, count));
 }
 
 Shape quad(float a) {
-    float vertices_raw[] = {
+    std::vector<float> vertices = {
         0.5f*a, -0.5f*a, 0.0, 1.0, 0.0, // 0
        -0.5f*a, -0.5f*a, 0.0, 0.0, 0.0, // 1
         0.5f*a,  0.5f*a, 0.0, 1.0, 1.0, // 2
        -0.5f*a,  0.5f*a, 0.0, 0.0, 1.0, // 3
     };
-    unsigned int indices_raw[] = {
+    std::vector<unsigned int> indices = {
         0, 1, 2,
         1, 3, 2,
         // 0, 2, 1,
         // 1, 2, 3,
     };
-    
-    std::vector<float> vertices(vertices_raw, vertices_raw + sizeof vertices_raw / sizeof vertices_raw[0]);
-    std::vector<unsigned int> indices(indices_raw, indices_raw + sizeof indices_raw / sizeof indices_raw[0]);
 
     return Shape(vertices, indices);
 }
 
 Shape rect(float w, float h) {
-    float vertices_raw[] = {
+    std::vector<float> vertices = {
         0.5f*w, -0.5f*h, 0.0, 1.0, 0.0, // 0
        -0.5f*w, -0.5f*h, 0.0, 0.0, 0.0, // 1
         0.5f*w,  0.5f*h, 0.0, 1.0, 1.0, // 2
        -0.5f*w,  0.5f*h, 0.0, 0.0, 1.0, // 3
     };
-    unsigned int indices_raw[] = {
+    std::vector<unsigned int> indices = {
         0, 1, 2,
         1, 3, 2,
         // 0, 2, 1,
         // 1, 2, 3,
     };
-    
-    std::vector<float> vertices(vertices_raw, vertices_raw + sizeof vertices_raw / sizeof vertices_raw[0]);
-    std::vector<unsigned int> indices(indices_raw, indices_raw + sizeof indices_raw / sizeof indices_raw[0]);
 
     return Shape(vertices, indices);
 }
 
 Shape circle(float r) {
-    float vertices_raw[] = {
+    std::vector<float> vertices = {
         // Format: x * r, y * r, z * r, u, v
         0.0f, 0.0f, 0.0f, 0.5f, 0.5f,
         0.5f * r, 0.0f, 0.0f, 1.0f, 0.5f,
@@ -133,7 +127,7 @@ Shape circle(float r) {
         0.4924038765f * r, -0.08682408883f * r, 0.0f, 0.9924038765f, 0.41317591117f
     };
     
-    unsigned int indices_raw[] = {
+    std::vector<unsigned int> indices = {
         0, 2, 1,
         0, 3, 2,
         0, 4, 3,
@@ -171,15 +165,12 @@ Shape circle(float r) {
         0, 1, 35
     };
     
-    std::vector<float> vertices(vertices_raw, vertices_raw + sizeof vertices_raw / sizeof vertices_raw[0]);
-    std::vector<unsigned int> indices(indices_raw, indices_raw + sizeof indices_raw / sizeof indices_raw[0]);
-
     return Shape(vertices, indices);
 }
 
 Shape cube(float a) {
     float r = a / 2;
-    float vertices_raw[] = {
+    std::vector<float> vertices = {
         -r, -r, -r, 0.0, 0.0,
         r, -r, -r, 1.0, 0.0,
         r, r, -r, 1.0, 1.0,
@@ -189,7 +180,7 @@ Shape cube(float a) {
         r, r, r, 1.0, 1.0,
         -r, r, r, 0.0, 1.0
     };
-    unsigned int indices_raw[] = {
+    std::vector<unsigned int>indices = {
         0, 1, 2,
         2, 3, 0,
         1, 5, 6,
@@ -203,9 +194,6 @@ Shape cube(float a) {
         3, 2, 6,
         6, 7, 3
     };
-
-    std::vector<float> vertices(vertices_raw, vertices_raw + sizeof vertices_raw / sizeof vertices_raw[0]);
-    std::vector<unsigned int> indices(indices_raw, indices_raw + sizeof indices_raw / sizeof indices_raw[0]);
 
     return Shape(vertices, indices);
 }

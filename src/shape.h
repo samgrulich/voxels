@@ -55,10 +55,10 @@ struct Vbl {
 };
 
 struct Vertex {
-    static int get_size() {
+    static int getSize() {
         return (3 + 2)*sizeof(float);
     }
-    static Vbl get_layout() {
+    static Vbl getLayout() {
         Vbl layout = Vbl();
         layout.pushf(3);
         layout.pushf(2);
@@ -68,12 +68,12 @@ struct Vertex {
 
 class Shape {
     private:
-        std::vector<float> m_vertices;
-        std::vector<unsigned int> m_indices;
-        Vbl m_layout;
-        unsigned int m_vao;
-        unsigned int m_vb;
-        unsigned int m_ib;
+        std::vector<float> vertices_;
+        std::vector<unsigned int> indices_;
+        Vbl layout_;
+        unsigned int VAO_;
+        unsigned int VB_;
+        unsigned int IB_;
 
     public:
         Shape();
@@ -84,7 +84,7 @@ class Shape {
         void unbind();
 
         void draw();
-        void draw_instanced(unsigned int count);
+        void drawInstanced(unsigned int count);
 };
 
 Shape quad(float a);

@@ -11,14 +11,14 @@ class ShaderProgram {
     public:
         unsigned int id;
     private:
-        std::string m_vertex_path;
-        std::string m_fragment_path;
-        unsigned int m_vertex;
-        unsigned int m_fragment;
-        long m_last_modified;
-        std::map<std::string, unsigned int> m_uniforms;
+        std::string vertexPath_;
+        std::string fragmentPath_;
+        unsigned int vertex_;
+        unsigned int fragment_;
+        long lastModified_;
+        std::map<std::string, unsigned int> uniforms_;
     public:
-        ShaderProgram(const std::string &vertex_path, const std::string &fragment_path);
+        ShaderProgram(const std::string &vertexPath, const std::string &fragmentPath);
         ~ShaderProgram();
         int refresh();
         void bind();
@@ -35,22 +35,22 @@ class ShaderProgram {
         void set(std::string name, glm::vec4 vec); 
         void set(std::string name, glm::mat4 mat);
 
-        int get_location(std::string &name);
+        int getLocation(std::string &name);
         
     private:
-        void compile_and_link();
-        bool shader_changed();
+        void compileAndLink();
+        bool shaderChanged();
 };
 
 // fetches file metadata for last timestamp
-long get_file_timestamp(const std::string &path);
+long getFileTimestamp(const std::string &path);
 // fetches both files and returns the latest timestamp
-long get_latest_files_timestamp(const std::string &p1, const std::string &p2);
+long getFilesTimestamp(const std::string &p1, const std::string &p2);
 // fethces file metadata for last timestamp and compares it with the last_time provided
-bool check_file_change(const std::string &path, time_t last_time);
+bool fileChanged(const std::string &path, time_t latestTime);
 // searches the EOF for the file size 
-int get_file_size(FILE *f);
+int getFileSize(FILE *f);
 // Loads the file contents as a dynamicly allocated char array, 
 // if anything fails the the program exits
-std::string read_file(const std::string &filepath);
+std::string readFile(const std::string &filepath);
 
