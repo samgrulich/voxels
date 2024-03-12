@@ -70,24 +70,21 @@ class Chunk {
 
 
 struct IVec3Comparator {
-    size_t operator()(const glm::ivec3& k) const {
-        return std::hash<int>()(k.x) ^ std::hash<int>()(k.y) ^ std::hash<int>()(k.z);
-    }
     bool operator()(const glm::ivec3& a, const glm::ivec3& b) const {
-        return a == b;
+        return std::hash<glm::ivec3>()(a) < std::hash<glm::ivec3>()(b);
     }
 };
 
 class World {
     private:
-        unsigned int m_view_distance = 6;
-        // todo: add caching to chunk retriving, add caching to chunk nodes
+        int m_view_distance = 6;
         // todo: center loaded area arround player, add loading unloading new chunks
         // todo: add multithreading
-        std::map<glm::ivec3, Chunk, IVec3Comparator> m_chunks = std::map<glm::ivec3, Chunk, IVec3Comparator>();
+        // todo: add caching to chunk nodes
         // std::vector<Chunk> m_chunks = std::vector<Chunk>();
-        std::vector<Chunk*> m_generated = std::vector<Chunk*>();
-        std::queue<Chunk*> m_to_generate = std::queue<Chunk*>();
+        std::map<glm::ivec3, Chunk, IVec3Comparator> m_chunks;
+        std::vector<Chunk*> m_generated;
+        std::queue<Chunk*> m_to_generate;
         Chunk* m_last_chunk;
     private:
         bool is_position_outside(glm::ivec3 position);

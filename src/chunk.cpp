@@ -42,13 +42,6 @@ Chunk::Chunk(glm::ivec3 position)
     glm::ivec3 point = {0, 0, 0};
     if (position.y < 2)
         insertTo(&m_root, point, 1, point, 0, 0);
-    // for (int z = 0; z < CHUNK_SIDE; z++) {
-    //     for (int y = 0; y < CHUNK_SIDE; y++) {
-    //         for (int x = 0; x < CHUNK_SIDE; x++) {
-    //             set_block({x, y, z}, 1);
-    //         }
-    //     }
-    // }
 }
 
 Chunk::Chunk() {
@@ -288,12 +281,22 @@ void Chunk::draw() {
     GLCall(glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT, NULL))
 }
 
-World::World() {
-    for (int z = 0; z < m_view_distance; z++) {
-        for (int y = 0; y < m_view_distance; y++) {
-            for (int x = 0; x < m_view_distance; x++) {
-                m_chunks[{x, y, z}] = Chunk({x, y, z});
-                m_to_generate.push(&m_chunks[{x, y, z}]);
+World::World() 
+    :m_last_chunk(nullptr)
+{
+    m_chunks = std::map<glm::ivec3, Chunk, IVec3Comparator>();
+    m_generated = std::vector<Chunk*>();
+    m_to_generate = std::queue<Chunk*>();
+
+    int max = m_view_distance / 2;
+    int min = -max;
+
+    for (int z = 0; z < max; z++) {
+        for (int y = 0; y < max; y++) {
+            for (int x = 0; x < max; x++) {
+                glm::ivec3 position(x, y, z);
+                m_chunks[position] = Chunk(position);
+                m_to_generate.push(&(m_chunks.find(position)->second));
             }
         }
     }
@@ -346,7 +349,11 @@ uint8_t World::get_block(glm::ivec3 position) {
         return 0;
     glm::ivec3 chunk_position = get_chunk_position(position);
     Chunk* chunk;
-    if (m_last_chunk != nullptr && m_last_chunk->m_position == chunk_position) {
+    if (m_last_chunk != nullptr 
+        && m_last_chunk->m_position.x == chunk_position.x
+        && m_last_chunk->m_position.y == chunk_position.y
+        && m_last_chunk->m_position.z == chunk_position.z
+    ) {
         chunk = m_last_chunk;
     } else {
         chunk = &m_chunks[chunk_position];
