@@ -82,26 +82,34 @@ class World {
         // todo: add multithreading
         // todo: add caching to chunk nodes
         std::map<glm::ivec3, Chunk, IVec3Comparator> chunks_;
-        std::vector<Chunk*> generated_;
+        std::map<glm::ivec3, Chunk*, IVec3Comparator> generated_;
         std::queue<Chunk*> toGenerate_;
         Chunk* lastChunk_;
         glm::ivec3 start_;
         glm::ivec3 end_;
+        glm::ivec3 playerPos_;
     private:
         bool isPositionOutside(glm::ivec3 position);
+
         glm::ivec3 getChunkPosition(glm::ivec3 position);
         glm::ivec3 getBlockPosition(glm::ivec3 position);
+
         size_t getChunkIndex(glm::ivec3 position);
         size_t getBlockIndex(glm::ivec3 position);
-        void loadChunks();
-        void unloadChunks();
+
+        void getChunksXPlane(std::vector<glm::ivec3> chunks, int coord);
+        void getChunksYPlane(std::vector<glm::ivec3> chunks, int coord);
+        void getChunksZPlane(std::vector<glm::ivec3> chunks, int coord);
+
+        void loadChunks(std::vector<glm::ivec3> chunkPositions);
+        void unloadChunks(std::vector<glm::ivec3> chunkPositions);
     public:
-        World();
+        World(glm::ivec3 playerPos);
         ~World();
 
         uint8_t getBlock(glm::ivec3 position);
         void generateChunk();
         void meshChunk();
-        void updateRegion();
+        void updateRegion(glm::ivec3 camPos);
         void draw();
 };

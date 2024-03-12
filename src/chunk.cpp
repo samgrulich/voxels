@@ -1,7 +1,9 @@
 #include <cmath>
 #include <cstdint>
 #include <array>
+#include <cstdlib>
 #include <vector>
+#include <iostream>
 
 #include <GL/glew.h>
 
@@ -281,11 +283,11 @@ void Chunk::draw() {
     GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL))
 }
 
-World::World() 
-    :lastChunk_(nullptr)
+World::World(glm::ivec3 playerPos) 
+    : lastChunk_(nullptr), playerPos_(playerPos)
 {
     chunks_ = std::map<glm::ivec3, Chunk, IVec3Comparator>();
-    generated_ = std::vector<Chunk*>();
+    generated_ = std::map<glm::ivec3, Chunk*, IVec3Comparator>();
     toGenerate_ = std::queue<Chunk*>();
 
     glm::ivec3 start(-viewDistance_/2);
@@ -345,20 +347,59 @@ size_t World::getBlockIndex(glm::ivec3 position) {
     glm::ivec3 blockPos = getBlockPosition(position);
     return blockPos.z * CHUNK_SIDE_POW2 + blockPos.y * CHUNK_SIDE + blockPos.x;
 }
+        
+void World::getChunksXPlane(std::vector<glm::ivec3> chunks, int coord) {
+    for (int z = start_.z; z < end_.z; z++) {
+        for (int y = start_.y; y < end_.y; y++) {
+            std::cout << y << ", " << z << std::endl;
+            chunks.push_back({coord, y, z});
+        }
+    }
+}
+
+void World::getChunksYPlane(std::vector<glm::ivec3> chunks, int coord) {
+    for (int z = start_.z; z < end_.z; z++) {
+        for (int x = start_.x; x < end_.x; x++) {
+            std::cout << x << ", " << z << std::endl;
+            chunks.push_back({x, coord, z});
+        }
+    }
+}
+
+void World::getChunksZPlane(std::vector<glm::ivec3> chunks, int coord) {
+    for (int y = start_.y; y < end_.y; y++) {
+        for (int x = start_.x; x < end_.x; x++) {
+            std::cout << x << ", " << y << std::endl;
+            chunks.push_back({x, y, coord});
+        }
+    }
+}
+
+void World::loadChunks(std::vector<glm::ivec3> chunkPositions) {
+    for (glm::ivec3 chunkPos : chunkPositions) {
+        chunks_[chunkPos] = Chunk(chunkPos);
+        toGenerate_.push(&(chunks_.find(chunkPos)->second));
+    }
+}
+
+void World::unloadChunks(std::vector<glm::ivec3> chunkPositions) {
+    for (glm::ivec3 chunkPos : chunkPositions) {
+        generated_.erase(chunkPos);
+        chunks_.erase(chunkPos);
+    }
+}
 
 uint8_t World::getBlock(glm::ivec3 position) {
     if (isPositionOutside(position))
         return 0;
-    glm::ivec3 chunk_position = getChunkPosition(position);
+    glm::ivec3 chunkPos = getChunkPosition(position);
     Chunk* chunk;
     if (lastChunk_ != nullptr 
-        && lastChunk_->position_.x == chunk_position.x
-        && lastChunk_->position_.y == chunk_position.y
-        && lastChunk_->position_.z == chunk_position.z
+        && lastChunk_->position_ == chunkPos
     ) {
         chunk = lastChunk_;
     } else {
-        chunk = &chunks_[chunk_position];
+        chunk = &chunks_[chunkPos];
         lastChunk_ = chunk;
     }
     return chunk->getBlock(getBlockPosition(position));
@@ -369,13 +410,41 @@ void World::generateChunk() {
         return;
     Chunk* chunk = toGenerate_.front();
     chunk->generate(*this);
-    generated_.push_back(chunk);
+    generated_[chunk->position_] = chunk;
     toGenerate_.pop();
 }
 
+void World::updateRegion(glm::ivec3 camPos) {
+    if (getChunkPosition(camPos) != getChunkPosition(playerPos_)) {
+        glm::ivec3 delta = getChunkPosition(camPos) - getChunkPosition(playerPos_); 
+        std::cout << "updating region camPos " << delta.x << std::endl;
+        glm::ivec3 loadOrigin = camPos + delta * viewDistance_; // todo
+        glm::ivec3 unloadOrigin = playerPos_ - delta * viewDistance_; // todo
+        std::vector<glm::ivec3> toLoad;
+        std::vector<glm::ivec3> toUnload;
+        for (int xd = 0; xd < abs(delta.x); xd++) {
+            getChunksXPlane(toLoad, loadOrigin.x);
+            getChunksXPlane(toUnload, unloadOrigin.x);
+        }
+        for (int yd = 0; yd < abs(delta.y); yd++) {
+            getChunksYPlane(toLoad, loadOrigin.y);
+            getChunksYPlane(toUnload, unloadOrigin.y);
+        }
+        for (int zd = 0; zd < abs(delta.z); zd++) {
+            getChunksZPlane(toLoad, loadOrigin.z);
+            getChunksZPlane(toUnload, unloadOrigin.z);
+        }
+        std::cout << toLoad.size() << std::endl;
+        std::cout << toUnload.size() << std::endl;
+        loadChunks(toLoad);
+        unloadChunks(toUnload);
+        playerPos_ = camPos;
+    }
+}
+
 void World::draw() {
-    for (int i = 0; i < generated_.size(); i++) {
-        generated_[i]->draw();
+    for (const auto &[_, chunk] : generated_) {
+        chunk->draw();
     }
 }
 

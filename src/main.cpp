@@ -74,7 +74,7 @@ int main(void) {
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    World world;
+    World world(cam.position);
     glm::vec4 clearColor = {0.7, 0.7, 0.8, 1.0};
 
     s_state.cam = &cam;
@@ -119,6 +119,7 @@ int main(void) {
         world.draw();
         world.generateChunk();
         basicShader.refresh();
+        world.updateRegion(cam.position);
 
         // IMGUI Rendering
         ImGui::Render();
