@@ -14,6 +14,12 @@
 #include "chunk.h"
 
 
+/* TODOS:
+ *  multithreading
+ *  fix chunk generation (meshes between chunks)
+ *  optimize chunk generation/meshing
+ */
+
 static struct State {
     GLFWwindow* win;
     glm::ivec2 winSize = {800, 600};
@@ -75,7 +81,7 @@ int main(void) {
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
     World world(cam.position);
-    glm::vec4 clearColor = {0.7, 0.7, 0.8, 1.0};
+    glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
 
     s_state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -117,9 +123,9 @@ int main(void) {
         basicShader.set("u_MVP", cam.viewProjection);
 
         world.draw();
+        world.updateRegion(cam.position);
         world.generateChunk();
         basicShader.refresh();
-        world.updateRegion(cam.position);
 
         // IMGUI Rendering
         ImGui::Render();

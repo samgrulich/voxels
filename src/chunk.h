@@ -77,10 +77,8 @@ struct IVec3Comparator {
 
 class World {
     private:
-        int viewDistance_ = 6;
-        // todo: add loading unloading new chunks
-        // todo: add multithreading
-        // todo: add caching to chunk nodes
+        int viewDistance_ = 1;
+        int fullViewDistance_ = 3;
         std::map<glm::ivec3, Chunk, IVec3Comparator> chunks_;
         std::map<glm::ivec3, Chunk*, IVec3Comparator> generated_;
         std::queue<Chunk*> toGenerate_;
@@ -97,12 +95,15 @@ class World {
         size_t getChunkIndex(glm::ivec3 position);
         size_t getBlockIndex(glm::ivec3 position);
 
-        void getChunksXPlane(std::vector<glm::ivec3> chunks, int coord);
-        void getChunksYPlane(std::vector<glm::ivec3> chunks, int coord);
-        void getChunksZPlane(std::vector<glm::ivec3> chunks, int coord);
+        // adds positions of chunks in given X plane
+        void addChunksXPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset);
+        // adds positions of chunks in given Y plane
+        void addChunksYPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset);
+        // adds positions of chunks in given Z plane
+        void addChunksZPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset);
 
-        void loadChunks(std::vector<glm::ivec3> chunkPositions);
-        void unloadChunks(std::vector<glm::ivec3> chunkPositions);
+        void loadChunks(std::vector<glm::ivec3>& chunkPositions);
+        void unloadChunks(std::vector<glm::ivec3>& chunkPositions);
     public:
         World(glm::ivec3 playerPos);
         ~World();
@@ -110,6 +111,7 @@ class World {
         uint8_t getBlock(glm::ivec3 position);
         void generateChunk();
         void meshChunk();
+
         void updateRegion(glm::ivec3 camPos);
         void draw();
 };

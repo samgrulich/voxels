@@ -13,7 +13,7 @@
 Camera::Camera(GLFWwindow *win, float aspect)
     : aspect_(aspect)
 {
-    speed_ = 3.5f;
+    speed_ = 14.f;
     sensitivity_ = 0.07f;
 
     fov_ = 60.0f;
@@ -22,7 +22,7 @@ Camera::Camera(GLFWwindow *win, float aspect)
 
     yaw = 90.0f;
     pitch = 0.0f;
-    position = {0.0, 70.0, -10.5};
+    position = {16.0, 70.0, 16.0};
     front_ = {0.0, 0.0, 1.0};
     up_ = {0.0, 1.0, 0.0};
     right_ = {1.0, 0.0, 0.0};

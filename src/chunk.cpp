@@ -3,7 +3,6 @@
 #include <array>
 #include <cstdlib>
 #include <vector>
-#include <iostream>
 
 #include <GL/glew.h>
 
@@ -46,9 +45,7 @@ Chunk::Chunk(glm::ivec3 position)
         insertTo(&root_, point, 1, point, 0, 0);
 }
 
-Chunk::Chunk() {
-    Chunk({0, 0, 0});
-}
+Chunk::Chunk(): Chunk({0, 0, 0}) { }
 
 Chunk::~Chunk() {
     GLCall(glDeleteBuffers(1, &VAO_));
@@ -89,10 +86,10 @@ void Chunk::addFaceXPlane(glm::ivec3 position, bool reversed) {
 
     glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
-        1.0f + vertex_offset.x,  0.0f + vertex_offset.y, 0.0f + vertex_offset.z, 1.0, 0.0, // 0
-        0.0f + vertex_offset.x,  0.0f + vertex_offset.y, 0.0f + vertex_offset.z, 0.0, 0.0, // 1
-        1.0f + vertex_offset.x,  1.0f + vertex_offset.y, 0.0f + vertex_offset.z, 1.0, 1.0, // 2
-        0.0f + vertex_offset.x,  1.0f + vertex_offset.y, 0.0f + vertex_offset.z, 0.0, 1.0, // 3
+        1.0f + vertex_offset.x,  0.0f + vertex_offset.y, 1.0f + vertex_offset.z, 1.0, 0.0, // 0
+        0.0f + vertex_offset.x,  0.0f + vertex_offset.y, 1.0f + vertex_offset.z, 0.0, 0.0, // 1
+        1.0f + vertex_offset.x,  1.0f + vertex_offset.y, 1.0f + vertex_offset.z, 1.0, 1.0, // 2
+        0.0f + vertex_offset.x,  1.0f + vertex_offset.y, 1.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
     vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
@@ -115,10 +112,10 @@ void Chunk::addFaceZPlane(glm::ivec3 position, bool reversed) {
 
     glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
-        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 1.0, 0.0, // 0
-        0.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 0.0, // 1
-        0.0f + vertex_offset.x, 1.0f + vertex_offset.y,  0.0f + vertex_offset.z, 1.0, 1.0, // 2
-        0.0f + vertex_offset.x, 1.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 1.0, // 3
+        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  1.0f + vertex_offset.z, 1.0, 0.0, // 0
+        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 0.0, 0.0, // 1
+        0.0f + vertex_offset.x, 1.0f + vertex_offset.y,  1.0f + vertex_offset.z, 1.0, 1.0, // 2
+        0.0f + vertex_offset.x, 1.0f + vertex_offset.y,  0.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
     vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
@@ -141,10 +138,10 @@ void Chunk::addFaceYPlane(glm::ivec3 position, bool reversed) {
     
     glm::vec3 vertex_offset = posToWorld(position);
     float vertices[] = {
-        1.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 1.0, 0.0, // 0
-        0.0f + vertex_offset.x, 0.0f + vertex_offset.y, -1.0f + vertex_offset.z, 0.0, 0.0, // 1
-        1.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 1.0, 1.0, // 2
-        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 0.0, 1.0, // 3
+        1.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 1.0, 0.0, // 0
+        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  0.0f + vertex_offset.z, 0.0, 0.0, // 1
+        1.0f + vertex_offset.x, 0.0f + vertex_offset.y,  1.0f + vertex_offset.z, 1.0, 1.0, // 2
+        0.0f + vertex_offset.x, 0.0f + vertex_offset.y,  1.0f + vertex_offset.z, 0.0, 1.0, // 3
     };
 
     vertices_.insert(vertices_.end(), std::begin(vertices), std::end(vertices));
@@ -156,9 +153,9 @@ void Chunk::addFaceYPlane(glm::ivec3 position, bool reversed) {
 
 bool Chunk::isPosOutside(glm::ivec3 position) {
     return (
-        position.x < 0 || position.x > CHUNK_SIDE-1
-        || position.y < 0 || position.y > CHUNK_SIDE-1
-        || position.z < 0 || position.z > CHUNK_SIDE-1
+           position.x < 0 || position.x > CHUNK_SIDE
+        || position.y < 0 || position.y > CHUNK_SIDE
+        || position.z < 0 || position.z > CHUNK_SIDE
     );
 }
 
@@ -290,14 +287,15 @@ World::World(glm::ivec3 playerPos)
     generated_ = std::map<glm::ivec3, Chunk*, IVec3Comparator>();
     toGenerate_ = std::queue<Chunk*>();
 
-    glm::ivec3 start(-viewDistance_/2);
-    glm::ivec3 end = -start;
+    glm::ivec3 origin = getChunkPosition(playerPos);
+    glm::ivec3 start(origin-viewDistance_);
+    glm::ivec3 end  (origin+viewDistance_);
     start_ = start;
     end_ = end;
 
-    for (int z = start.z; z < end.z; z++) {
-        for (int y = start.y; y < end.y; y++) {
-            for (int x = start.x; x < end.x; x++) {
+    for (int z = start.z; z <= end.z; z++) {
+        for (int y = start.y; y <= end.y; y++) {
+            for (int x = start.x; x <= end.x; x++) {
                 glm::ivec3 position(x, y, z);
                 chunks_[position] = Chunk(position);
                 toGenerate_.push(&(chunks_.find(position)->second));
@@ -310,19 +308,19 @@ World::~World() { }
 
 bool World::isPositionOutside(glm::ivec3 position) {
     return (
-        position.x < start_.x*CHUNK_SIDE+1 || position.x > (end_.x*CHUNK_SIDE-1)
-        || position.y < start_.y*CHUNK_SIDE+1 || position.y > (end_.y*CHUNK_SIDE-1)
-        || position.z < start_.z*CHUNK_SIDE+1 || position.z > (end_.z*CHUNK_SIDE-1)
+           position.x < start_.x*CHUNK_SIDE || position.x > ((end_.x+1)*CHUNK_SIDE-1)
+        || position.y < start_.y*CHUNK_SIDE || position.y > ((end_.y+1)*CHUNK_SIDE-1)
+        || position.z < start_.z*CHUNK_SIDE || position.z > ((end_.z+1)*CHUNK_SIDE-1)
     );
 }
 
 glm::ivec3 World::getChunkPosition(glm::ivec3 position) {
     glm::ivec3 result = position / CHUNK_SIDE;
-    if (position.x < 0)
+    if (position.x < 0 && position.x % CHUNK_SIDE != 0)
         result.x--;
-    if (position.y < 0)
+    if (position.y < 0 && position.y % CHUNK_SIDE != 0)
         result.y--;
-    if (position.z < 0)
+    if (position.z < 0 && position.z % CHUNK_SIDE != 0)
         result.z--;
     return result;
 }
@@ -340,7 +338,7 @@ glm::ivec3 World::getBlockPosition(glm::ivec3 position) {
 
 size_t World::getChunkIndex(glm::ivec3 position) {
     glm::ivec3 chunkPos = getChunkPosition(position);
-    return chunkPos.z * viewDistance_*viewDistance_ + chunkPos.y * viewDistance_ + chunkPos.x;
+    return chunkPos.z * fullViewDistance_*fullViewDistance_ + chunkPos.y * fullViewDistance_ + chunkPos.x;
 }
 
 size_t World::getBlockIndex(glm::ivec3 position) {
@@ -348,41 +346,41 @@ size_t World::getBlockIndex(glm::ivec3 position) {
     return blockPos.z * CHUNK_SIDE_POW2 + blockPos.y * CHUNK_SIDE + blockPos.x;
 }
         
-void World::getChunksXPlane(std::vector<glm::ivec3> chunks, int coord) {
-    for (int z = start_.z; z < end_.z; z++) {
-        for (int y = start_.y; y < end_.y; y++) {
-            std::cout << y << ", " << z << std::endl;
-            chunks.push_back({coord, y, z});
+void World::addChunksXPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset) {
+    int x = origin.x + offset;
+    for (int z = origin.z-viewDistance_; z <= origin.z+viewDistance_; z++) {
+        for (int y = origin.y-viewDistance_; y <= origin.y+viewDistance_; y++) {
+            chunks.push_back({x, y, z});
         }
     }
 }
 
-void World::getChunksYPlane(std::vector<glm::ivec3> chunks, int coord) {
-    for (int z = start_.z; z < end_.z; z++) {
-        for (int x = start_.x; x < end_.x; x++) {
-            std::cout << x << ", " << z << std::endl;
-            chunks.push_back({x, coord, z});
+void World::addChunksYPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset) {
+    int y = origin.y + offset;
+    for (int z = origin.z-viewDistance_; z <= origin.z+viewDistance_; z++) {
+        for (int x = origin.x-viewDistance_; x <= origin.x+viewDistance_; x++) {
+            chunks.push_back({x, y, z});
         }
     }
 }
 
-void World::getChunksZPlane(std::vector<glm::ivec3> chunks, int coord) {
-    for (int y = start_.y; y < end_.y; y++) {
-        for (int x = start_.x; x < end_.x; x++) {
-            std::cout << x << ", " << y << std::endl;
-            chunks.push_back({x, y, coord});
+void World::addChunksZPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, int offset) {
+    int z = origin.z + offset;
+    for (int y = origin.y-viewDistance_; y <= origin.y+viewDistance_; y++) {
+        for (int x = origin.x-viewDistance_; x <= origin.x+viewDistance_; x++) {
+            chunks.push_back({x, y, z});
         }
     }
 }
 
-void World::loadChunks(std::vector<glm::ivec3> chunkPositions) {
+void World::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (glm::ivec3 chunkPos : chunkPositions) {
         chunks_[chunkPos] = Chunk(chunkPos);
         toGenerate_.push(&(chunks_.find(chunkPos)->second));
     }
 }
 
-void World::unloadChunks(std::vector<glm::ivec3> chunkPositions) {
+void World::unloadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (glm::ivec3 chunkPos : chunkPositions) {
         generated_.erase(chunkPos);
         chunks_.erase(chunkPos);
@@ -408,36 +406,48 @@ uint8_t World::getBlock(glm::ivec3 position) {
 void World::generateChunk() {
     if (toGenerate_.size() == 0)
         return;
-    Chunk* chunk = toGenerate_.front();
-    chunk->generate(*this);
-    generated_[chunk->position_] = chunk;
-    toGenerate_.pop();
+    int size = toGenerate_.size();
+    for (int i = 0; i < size; i++) {
+        Chunk* chunk = toGenerate_.front();
+        chunk->generate(*this);
+        generated_[chunk->position_] = chunk;
+        toGenerate_.pop();
+    }
 }
 
 void World::updateRegion(glm::ivec3 camPos) {
+    // chunk aligned positions (world pos % chunk side)
+    glm::ivec3 lastChunkPos = getChunkPosition(playerPos_);
+    glm::ivec3 currChunkPos = getChunkPosition(camPos);
     if (getChunkPosition(camPos) != getChunkPosition(playerPos_)) {
-        glm::ivec3 delta = getChunkPosition(camPos) - getChunkPosition(playerPos_); 
-        std::cout << "updating region camPos " << delta.x << std::endl;
-        glm::ivec3 loadOrigin = camPos + delta * viewDistance_; // todo
-        glm::ivec3 unloadOrigin = playerPos_ - delta * viewDistance_; // todo
+        glm::ivec3 delta = currChunkPos - lastChunkPos;
+        glm::ivec3 deltaAbs = glm::abs(delta);
+        glm::ivec3 deltaSign = glm::sign(delta);
+        glm::ivec3 loadOffset = viewDistance_/2 * deltaSign; 
+        glm::ivec3 unloadOffset = -loadOffset;
+
         std::vector<glm::ivec3> toLoad;
         std::vector<glm::ivec3> toUnload;
-        for (int xd = 0; xd < abs(delta.x); xd++) {
-            getChunksXPlane(toLoad, loadOrigin.x);
-            getChunksXPlane(toUnload, unloadOrigin.x);
+
+        for (int xd = 1; xd <= deltaAbs.x; xd++) {
+            int immOffset = xd*deltaSign.x;
+            addChunksXPlane(toLoad, currChunkPos, loadOffset.x+immOffset);
+            addChunksXPlane(toUnload, lastChunkPos, unloadOffset.x-immOffset);
         }
-        for (int yd = 0; yd < abs(delta.y); yd++) {
-            getChunksYPlane(toLoad, loadOrigin.y);
-            getChunksYPlane(toUnload, unloadOrigin.y);
+        for (int yd = 1; yd <= deltaAbs.y; yd++) {
+            int immOffset = yd*deltaSign.y;
+            addChunksYPlane(toLoad, currChunkPos, loadOffset.y+immOffset);
+            addChunksYPlane(toUnload, lastChunkPos, unloadOffset.y-immOffset);
         }
-        for (int zd = 0; zd < abs(delta.z); zd++) {
-            getChunksZPlane(toLoad, loadOrigin.z);
-            getChunksZPlane(toUnload, unloadOrigin.z);
+        for (int zd = 1; zd <= deltaAbs.z; zd++) {
+            int immOffset = zd*deltaSign.z;
+            addChunksZPlane(toLoad, currChunkPos, loadOffset.z+immOffset);
+            addChunksZPlane(toUnload, lastChunkPos, unloadOffset.z-immOffset);
         }
-        std::cout << toLoad.size() << std::endl;
-        std::cout << toUnload.size() << std::endl;
         loadChunks(toLoad);
         unloadChunks(toUnload);
+        start_ = currChunkPos - viewDistance_;
+        end_ = currChunkPos + viewDistance_;
         playerPos_ = camPos;
     }
 }
