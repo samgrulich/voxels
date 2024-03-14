@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <vector>
 
@@ -30,6 +32,7 @@ struct Node {
 class Chunk {
     public:
         glm::ivec3 position_;
+        bool toSend_;
     private:
         int size_;
         int depth_;
@@ -64,7 +67,8 @@ class Chunk {
         void bind();
         void unbind();
 
-        void generate(World& world);
+        void generate();
+        void mesh(World& world);
         void draw();
 };
 
@@ -79,10 +83,15 @@ class World {
     private:
         int viewDistance_ = 1;
         int fullViewDistance_ = 3;
-        std::map<glm::ivec3, Chunk, IVec3Comparator> chunks_;
-        std::map<glm::ivec3, Chunk*, IVec3Comparator> generated_;
-        std::queue<Chunk*> toGenerate_;
-        Chunk* lastChunk_;
+        // std::mutex mtxChunks_;
+        std::map<glm::ivec3, std::shared_ptr<Chunk>, IVec3Comparator> chunks_;
+        std::mutex mtxToGenerate_;
+        std::queue<std::weak_ptr<Chunk>> toGenerate_;
+        std::mutex mtxToMesh_;
+        std::queue<std::weak_ptr<Chunk>> toMesh_;
+        std::mutex mtxActive_;
+        std::map<glm::ivec3, std::weak_ptr<Chunk>, IVec3Comparator> active_;
+        std::weak_ptr<Chunk> lastChunk_;
         glm::ivec3 start_;
         glm::ivec3 end_;
         glm::ivec3 playerPos_;
@@ -109,8 +118,8 @@ class World {
         ~World();
 
         uint8_t getBlock(glm::ivec3 position);
-        void generateChunk();
-        void meshChunk();
+        void generateChunks();
+        void meshChunks();
 
         void updateRegion(glm::ivec3 camPos);
         void draw();

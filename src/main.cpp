@@ -8,14 +8,15 @@
 #include <imgui/imgui_impl_opengl3.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <thread>
 
 #include "camera.h"
 #include "shader.h"
 #include "chunk.h"
 
-
 /* TODOS:
  *  multithreading
+ *  fix segfault on loading and unloading simultaneously mulitple regions (missing check)
  *  fix chunk generation (meshes between chunks)
  *  optimize chunk generation/meshing
  */
@@ -25,6 +26,7 @@ static struct State {
     glm::ivec2 winSize = {800, 600};
     Camera* cam;
     bool drawLines = true;
+    bool shouldWindowClose = false;
 } s_state;
 
 // glfw callbacks
@@ -37,6 +39,22 @@ void changeDrawMode() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
+
+void startChunkGeneration(World *world) {
+    using namespace std::chrono_literals;
+    while (!s_state.shouldWindowClose) {
+        world->generateChunks();
+        std::this_thread::sleep_for(250ms);
+    }
+}
+
+void startChunkMeshing(World *world) {
+    using namespace std::chrono_literals;
+    while (!s_state.shouldWindowClose) {
+        world->meshChunks();
+        std::this_thread::sleep_for(250ms);
     }
 }
 
@@ -92,6 +110,8 @@ int main(void) {
     glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    std::thread t1(startChunkGeneration, &world);
+    std::thread t2(startChunkMeshing, &world);
     auto start = std::chrono::steady_clock::now();
     auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
@@ -124,7 +144,7 @@ int main(void) {
 
         world.draw();
         world.updateRegion(cam.position);
-        world.generateChunk();
+        // world.meshChunks();
         basicShader.refresh();
 
         // IMGUI Rendering
@@ -144,6 +164,9 @@ int main(void) {
         }
     }
 
+    s_state.shouldWindowClose = true;
+    t1.join();
+    t2.join();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

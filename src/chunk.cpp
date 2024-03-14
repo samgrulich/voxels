@@ -2,9 +2,16 @@
 #include <cstdint>
 #include <array>
 #include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <mutex>
 #include <vector>
 
 #include <GL/glew.h>
+
+#include <glm/ext.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
 
 #include "chunk.h"
 #include "glcommon.h"
@@ -37,12 +44,9 @@ Chunk::Chunk(glm::ivec3 position)
 
     GLCall(glGenBuffers(1, &IB_));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
-    
+
+    toSend_ = false;
     root_ = new Node;
-    
-    glm::ivec3 point = {0, 0, 0};
-    if (position.y < 2)
-        insertTo(&root_, point, 1, point, 0, 0);
 }
 
 Chunk::Chunk(): Chunk({0, 0, 0}) { }
@@ -225,7 +229,13 @@ uint8_t Chunk::get(Node** node, glm::ivec3 point, glm::ivec3 position, int depth
     return get(&(*node)->children[childIndex], point, position, ++depth);
 }
 
-void Chunk::generate(World& world) {
+void Chunk::generate() {
+    glm::ivec3 point = {0, 0, 0};
+    if (position_.y < 2)
+        insertTo(&root_, point, 1, point, 0, 0);
+}
+
+void Chunk::mesh(World& world) {
     for (int z = 0; z < CHUNK_SIDE; z++) {
         for (int y = 0; y < CHUNK_SIDE; y++) {
             for (int x = 0; x < CHUNK_SIDE; x++) {
@@ -269,23 +279,26 @@ void Chunk::generate(World& world) {
         }
     }
 
-    bind();
-    layout_.enableAttribs();
-    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices_.size()*sizeof(float), &vertices_[0], GL_STATIC_DRAW));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size()*sizeof(unsigned int), &indices_[0], GL_STATIC_DRAW));
+    toSend_ = true;
 }
 
 void Chunk::draw() {
     bind();
+    if (toSend_) {
+        layout_.enableAttribs();
+        GLCall(glBufferData(GL_ARRAY_BUFFER, vertices_.size()*sizeof(float), &vertices_[0], GL_STATIC_DRAW));
+        GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size()*sizeof(unsigned int), &indices_[0], GL_STATIC_DRAW));
+    }
     GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL))
 }
 
 World::World(glm::ivec3 playerPos) 
-    : lastChunk_(nullptr), playerPos_(playerPos)
+    : lastChunk_(std::weak_ptr<Chunk>()), playerPos_(playerPos)
 {
-    chunks_ = std::map<glm::ivec3, Chunk, IVec3Comparator>();
-    generated_ = std::map<glm::ivec3, Chunk*, IVec3Comparator>();
-    toGenerate_ = std::queue<Chunk*>();
+    chunks_     = std::map<glm::ivec3, std::shared_ptr<Chunk>, IVec3Comparator>();
+    toGenerate_ = std::queue<std::weak_ptr<Chunk>>();
+    toMesh_     = std::queue<std::weak_ptr<Chunk>>();
+    active_     = std::map<glm::ivec3, std::weak_ptr<Chunk>, IVec3Comparator>();
 
     glm::ivec3 origin = getChunkPosition(playerPos);
     glm::ivec3 start(origin-viewDistance_);
@@ -297,8 +310,8 @@ World::World(glm::ivec3 playerPos)
         for (int y = start.y; y <= end.y; y++) {
             for (int x = start.x; x <= end.x; x++) {
                 glm::ivec3 position(x, y, z);
-                chunks_[position] = Chunk(position);
-                toGenerate_.push(&(chunks_.find(position)->second));
+                chunks_[position] = std::make_shared<Chunk>(Chunk(position));
+                toGenerate_.push((chunks_.find(position)->second));
             }
         }
     }
@@ -375,14 +388,15 @@ void World::addChunksZPlane(std::vector<glm::ivec3>& chunks, glm::ivec3 origin, 
 
 void World::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (glm::ivec3 chunkPos : chunkPositions) {
-        chunks_[chunkPos] = Chunk(chunkPos);
-        toGenerate_.push(&(chunks_.find(chunkPos)->second));
+        // todo
+        chunks_[chunkPos] = std::make_shared<Chunk>(Chunk(chunkPos));
+        toGenerate_.push(chunks_.find(chunkPos)->second);
     }
 }
 
 void World::unloadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (glm::ivec3 chunkPos : chunkPositions) {
-        generated_.erase(chunkPos);
+        // save chunk
         chunks_.erase(chunkPos);
     }
 }
@@ -391,27 +405,59 @@ uint8_t World::getBlock(glm::ivec3 position) {
     if (isPositionOutside(position))
         return 0;
     glm::ivec3 chunkPos = getChunkPosition(position);
-    Chunk* chunk;
-    if (lastChunk_ != nullptr 
-        && lastChunk_->position_ == chunkPos
+    std::shared_ptr<Chunk> chunk;
+    if (!(chunk = lastChunk_.lock())
+        || chunk->position_ != chunkPos
     ) {
-        chunk = lastChunk_;
-    } else {
-        chunk = &chunks_[chunkPos];
+        chunk = chunks_[chunkPos];
         lastChunk_ = chunk;
     }
     return chunk->getBlock(getBlockPosition(position));
 }
 
-void World::generateChunk() {
+void World::generateChunks() {
     if (toGenerate_.size() == 0)
         return;
-    int size = toGenerate_.size();
-    for (int i = 0; i < size; i++) {
-        Chunk* chunk = toGenerate_.front();
-        chunk->generate(*this);
-        generated_[chunk->position_] = chunk;
-        toGenerate_.pop();
+    std::list<std::weak_ptr<Chunk>> generatedChunks;
+    {
+        std::lock_guard<std::mutex> g1(mtxToGenerate_);
+        int size = toGenerate_.size();
+        for (int i = 0; i < size; i++) {
+            if(std::shared_ptr<Chunk> chunk = toGenerate_.front().lock()) {
+                chunk->generate();
+                generatedChunks.push_back(chunk);
+            }
+            toGenerate_.pop();
+        }
+    }
+    if (generatedChunks.size() == 0) 
+        return;
+    std::lock_guard<std::mutex> g2(mtxToMesh_);
+    for (const auto &chunk : generatedChunks) {
+        toMesh_.push(chunk);
+    }
+}
+
+void World::meshChunks() {
+    if (toMesh_.size() == 0)
+        return;
+    std::list<std::weak_ptr<Chunk>> meshedChunks;
+    {
+        std::lock_guard<std::mutex> g1(mtxToMesh_);
+        int size = toMesh_.size();
+        for (int i = 0; i < size; i++) {
+            if (std::shared_ptr<Chunk> chunk = toMesh_.front().lock()) {
+                chunk->mesh(*this);
+                meshedChunks.push_back(chunk);
+            }
+            toMesh_.pop();
+        }
+    }
+    if (meshedChunks.size() == 0)
+        return;
+    std::lock_guard<std::mutex> g2(mtxActive_);
+    for (const auto &chunk : meshedChunks) {
+        active_[chunk.lock()->position_] = chunk;
     }
 }
 
@@ -453,8 +499,16 @@ void World::updateRegion(glm::ivec3 camPos) {
 }
 
 void World::draw() {
-    for (const auto &[_, chunk] : generated_) {
-        chunk->draw();
+    std::vector<glm::ivec3> toRemove;
+    for (const auto &[position, chunk] : active_) {
+        if (std::shared_ptr<Chunk> chunk_ptr = chunk.lock()) {
+            chunk_ptr->draw();
+        } else {
+            toRemove.push_back(position);
+        }
+    }
+    for (glm::ivec3 position : toRemove) {
+        active_.erase(position);
     }
 }
 
