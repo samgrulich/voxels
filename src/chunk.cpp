@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <array>
@@ -236,12 +237,15 @@ void Chunk::generate() {
 }
 
 void Chunk::mesh(World& world) {
+    float gettingBlock = 0;
+    float addingPlanes = 0;
     for (int z = 0; z < CHUNK_SIDE; z++) {
         for (int y = 0; y < CHUNK_SIDE; y++) {
             for (int x = 0; x < CHUNK_SIDE; x++) {
                 uint8_t opaqueBitmask = 0x0;
                 glm::ivec3 globalPos = posToWorld({x, y, z});
                 int mX = globalPos.x, mY = globalPos.y, mZ = globalPos.z;
+                auto start = std::chrono::steady_clock::now();
                 uint8_t b =   world.getBlock({mX, mY, mZ});
                 uint8_t bpx = world.getBlock({mX+1, mY, mZ});
                 uint8_t bnx = world.getBlock({mX-1, mY, mZ});
@@ -249,6 +253,7 @@ void Chunk::mesh(World& world) {
                 uint8_t bny = world.getBlock({mX, mY-1, mZ});
                 uint8_t bpz = world.getBlock({mX, mY, mZ+1});
                 uint8_t bnz = world.getBlock({mX, mY, mZ-1});
+                gettingBlock += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock().now() - start).count();
 
                 if (b == 0)
                     continue;
@@ -263,6 +268,7 @@ void Chunk::mesh(World& world) {
                 if (opaqueBitmask == ADJACENT_ALL_BITMASKS)
                     continue;
 
+                start = std::chrono::steady_clock::now();
                 if ((opaqueBitmask & ADJACENT_BITMASK_POS_X) == 0)
                     addFaceZPlane({x+1, y, z}, true);
                 if ((opaqueBitmask & ADJACENT_BITMASK_NEG_X) == 0)
@@ -275,9 +281,14 @@ void Chunk::mesh(World& world) {
                     addFaceXPlane({x, y, z}, false); // Z
                 if ((opaqueBitmask & ADJACENT_BITMASK_NEG_Z) == 0)
                     addFaceXPlane({x, y, z-1}, true);
+                addingPlanes += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock().now() - start).count();
             }
         }
     }
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "meshing: Chunk at " << glm::to_string(position_);
+    std::cout << ", blocksGetting took: " << gettingBlock;
+    std::cout << ", addingPlanes took: " << addingPlanes << std::endl;;
 
     toSend_ = true;
 }
@@ -298,7 +309,10 @@ World::World(glm::ivec3 playerPos)
     chunks_     = std::map<glm::ivec3, std::shared_ptr<Chunk>, IVec3Comparator>();
     toGenerate_ = std::queue<std::weak_ptr<Chunk>>();
     toMesh_     = std::queue<std::weak_ptr<Chunk>>();
+    toUnload_   = std::map<glm::ivec3, bool, IVec3Comparator>();
     active_     = std::map<glm::ivec3, std::weak_ptr<Chunk>, IVec3Comparator>();
+
+    fullViewDistance_ = 1 + 2*viewDistance_;
 
     glm::ivec3 origin = getChunkPosition(playerPos);
     glm::ivec3 start(origin-viewDistance_);
@@ -395,9 +409,12 @@ void World::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
 }
 
 void World::unloadChunks(std::vector<glm::ivec3>& chunkPositions) {
+    std::lock_guard<std::mutex> g1(mtxActive_);
+    std::lock_guard<std::mutex> g2(mtxToUnload_);
     for (glm::ivec3 chunkPos : chunkPositions) {
         // save chunk
-        chunks_.erase(chunkPos);
+        active_.erase(chunkPos);
+        toUnload_[chunkPos] = true;
     }
 }
 
@@ -418,14 +435,22 @@ uint8_t World::getBlock(glm::ivec3 position) {
 void World::generateChunks() {
     if (toGenerate_.size() == 0)
         return;
-    std::list<std::weak_ptr<Chunk>> generatedChunks;
+    std::vector<std::weak_ptr<Chunk>> generatedChunks;
+    generatedChunks.reserve(toGenerate_.size());
     {
         std::lock_guard<std::mutex> g1(mtxToGenerate_);
         int size = toGenerate_.size();
         for (int i = 0; i < size; i++) {
             if(std::shared_ptr<Chunk> chunk = toGenerate_.front().lock()) {
-                chunk->generate();
-                generatedChunks.push_back(chunk);
+                glm::ivec3 chunkPos = chunk->position_;
+                if (glm::any(glm::lessThan(chunkPos, start_)) 
+                    || glm::any(glm::greaterThan(chunkPos, end_))
+                ) {} else if (toUnload_.contains(chunkPos)) {
+                    toUnload_.erase(chunkPos);
+                } else {
+                    chunk->generate();
+                    generatedChunks.push_back(chunk);
+                }
             }
             toGenerate_.pop();
         }
@@ -441,14 +466,23 @@ void World::generateChunks() {
 void World::meshChunks() {
     if (toMesh_.size() == 0)
         return;
-    std::list<std::weak_ptr<Chunk>> meshedChunks;
+    std::vector<std::weak_ptr<Chunk>> meshedChunks;
+    meshedChunks.reserve(toMesh_.size());
     {
         std::lock_guard<std::mutex> g1(mtxToMesh_);
         int size = toMesh_.size();
         for (int i = 0; i < size; i++) {
-            if (std::shared_ptr<Chunk> chunk = toMesh_.front().lock()) {
-                chunk->mesh(*this);
-                meshedChunks.push_back(chunk);
+            if(std::shared_ptr<Chunk> chunk = toMesh_.front().lock()) {
+                glm::ivec3 chunkPos = chunk->position_;
+                if (glm::any(glm::lessThan(chunkPos, start_)) 
+                    || glm::any(glm::greaterThan(chunkPos, end_))
+                ) {
+                } else if (toUnload_.contains(chunkPos)) {
+                    toUnload_.erase(chunkPos);
+                } else {
+                    chunk->mesh(*this);
+                    meshedChunks.push_back(chunk);
+                }
             }
             toMesh_.pop();
         }
@@ -499,16 +533,11 @@ void World::updateRegion(glm::ivec3 camPos) {
 }
 
 void World::draw() {
-    std::vector<glm::ivec3> toRemove;
+    std::lock_guard<std::mutex> g1(mtxActive_);
     for (const auto &[position, chunk] : active_) {
-        if (std::shared_ptr<Chunk> chunk_ptr = chunk.lock()) {
+        if(std::shared_ptr<Chunk> chunk_ptr = chunk.lock()) {
             chunk_ptr->draw();
-        } else {
-            toRemove.push_back(position);
         }
-    }
-    for (glm::ivec3 position : toRemove) {
-        active_.erase(position);
     }
 }
 

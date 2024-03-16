@@ -15,10 +15,11 @@
 #include "chunk.h"
 
 /* TODOS:
- *  multithreading
- *  fix segfault on loading and unloading simultaneously mulitple regions (missing check)
- *  fix chunk generation (meshes between chunks)
  *  optimize chunk generation/meshing
+ *  fix segfault on loading and unloading simultaneously mulitple regions (missing check)
+ *  fix not unloading chunks properly
+ *  fix chunk generation (meshes between chunks)
+ *  ? frustum chunk generation
  */
 
 static struct State {

@@ -81,14 +81,16 @@ struct IVec3Comparator {
 
 class World {
     private:
-        int viewDistance_ = 1;
-        int fullViewDistance_ = 3;
+        int viewDistance_ = 2;
+        int fullViewDistance_;
         // std::mutex mtxChunks_;
         std::map<glm::ivec3, std::shared_ptr<Chunk>, IVec3Comparator> chunks_;
         std::mutex mtxToGenerate_;
         std::queue<std::weak_ptr<Chunk>> toGenerate_;
         std::mutex mtxToMesh_;
         std::queue<std::weak_ptr<Chunk>> toMesh_;
+        std::mutex mtxToUnload_;
+        std::map<glm::ivec3, bool, IVec3Comparator> toUnload_;
         std::mutex mtxActive_;
         std::map<glm::ivec3, std::weak_ptr<Chunk>, IVec3Comparator> active_;
         std::weak_ptr<Chunk> lastChunk_;

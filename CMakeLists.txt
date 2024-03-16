@@ -31,7 +31,7 @@ add_library(
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui)
 
-SET (CMAKE_CXX_FLAGS "-std=c++20 -g")
+SET (CMAKE_CXX_FLAGS "-std=c++20 -pg -O0")
 
 
 # add_subdirectory(src) # add directory with another CMakeLists
