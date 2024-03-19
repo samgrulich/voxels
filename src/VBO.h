@@ -20,7 +20,7 @@ struct VBO {
      *   by user by calling Delete())
      */
     VBO();
-    ~VBO() {erase();}
+    ~VBO() {remove();}
 
     // // (Re)write new vertices to the VBO
     // void set(std::vector<GLfloat> vertices);
@@ -31,6 +31,6 @@ struct VBO {
     // Unbinds the VBO
     void unbind();
     // Deletes the VBO 
-    void erase();
+    void remove();
 };
 

@@ -7,7 +7,7 @@ struct VAO {
     GLuint ID;
 
     VAO();
-    ~VAO() {erase();}
+    ~VAO() {remove();}
 
     /* Links a VBO attribute 
      * (the datatype of the attributes are uints by default)
@@ -23,5 +23,5 @@ struct VAO {
     // Unbind the VAO 
     void unbind();
     // Deletes the VAO
-    void erase();
+    void remove();
 };

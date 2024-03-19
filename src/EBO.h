@@ -20,7 +20,7 @@ struct EBO {
      *   by user by calling Delete())
      */
     EBO();
-    ~EBO() {erase();}
+    ~EBO() {remove();}
 
     // (Re)write new vertices to the VBO
     void set(std::vector<GLuint> vertices);
@@ -29,5 +29,5 @@ struct EBO {
     // Unbinds the VBO
     void unbind();
     // Deletes the VBO 
-    void erase();
+    void remove();
 };

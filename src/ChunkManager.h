@@ -12,11 +12,11 @@
 class ChunkManager {
     private:
         std::mutex mtxToGenerate_;
-        std::queue<ChunkMetadata*> toGenerate_;
+        std::queue<ChunkMetadata> toGenerate_;
         std::mutex mtxToMesh_;
-        std::queue<ChunkMetadata*> toMesh_;
+        std::queue<ChunkMetadata> toMesh_;
         std::mutex mtxActive_;
-        std::unordered_map<glm::ivec3, std::weak_ptr<Chunk>> active_;
+        std::unordered_map<glm::ivec3, ChunkMetadata> active_;
         glm::vec3 lastCameraPosition;
         glm::vec3 lastCameraForward;
     private:
