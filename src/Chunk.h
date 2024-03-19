@@ -9,10 +9,12 @@
 #define GLM_ENABLE_EXPERIMENTAL // Need this to use the glm hashes
 #include "glm/gtx/hash.hpp" // Include hash maps for unordered_map
 #include <GL/glew.h>
+
 #include "VBO.h"
 #include "VAO.h"
 #include "WorldConstants.h"
 #include "Block.h"
+#include "Shader.h"
 
 
 
@@ -24,7 +26,8 @@ class ChunkMetadata {
     private:
         bool toGenerate_;
         bool toMesh_;
-        bool active_;
+        bool toUpload_;
+        bool isActive_;
         glm::ivec3 position_;
         glm::ivec3 offset_;
         std::shared_ptr<Chunk> chunk_;
@@ -38,15 +41,20 @@ class ChunkMetadata {
         void setToGenerate();
         // set the chunk state to mesh stage
         void setToMesh();
+        // set the chunk state to upload (mesh) stage
+        void setToUpload();
         // set the chunk state to render stage
         void setToActive();
         // prepare the chunk for unloading (disable all other states)
         void setToUnload();
 
         // returns true if chunk is ready for generation
-        bool isGeneratable();
+        bool toGenerate();
         // returns true if chunk is ready for meshing
-        bool isMeshable();
+        bool toMesh();
+        // returns true if chunk has been meshed and is waiting for the mesh 
+        // to be uploaded
+        bool toUpload();
         // returns true if chunk is active
         bool isActive();
 
@@ -85,20 +93,20 @@ class Chunk {
         void remesh();
 
         // get block by position
-        Block& getBlock(GLint x, GLint y, GLint z);
+        Block& getBlock(int x, int y, int z);
         // get block by position
         Block& getBlock(glm::ivec3 position);
+        // returns true if the block at this position is transparent
+        bool isBlockTransparent(int x, int y, int z);
         // set block value
-        void setBlock(glm::ivec3 position, BlockType block);
-        // Upload the mesh to the GPU
-        void uploadChunk(GLuint shaderProgramID);
+        void setBlock(Block block);
         // draw the chunk
-        void draw(GLuint shaderProgramID);
+        void draw(ShaderProgram shaderProgram, bool renderOpaque);
 
     private:
         // pack block vertices and add them to the vertices list
         void generateMesh();
-        // setblock, set position
+        // creates face and adds it into the vertices vector
         void generateFace(Block& block, GLuint faceIndex);
 };
 

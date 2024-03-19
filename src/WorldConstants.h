@@ -5,4 +5,9 @@ namespace World {
     const unsigned int CHUNK_SIZE = 32;
     const unsigned int CHUNK_SIZE_POW2 = CHUNK_SIZE*CHUNK_SIZE;
     const unsigned int CHUNK_SIZE_POW3 = CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE;
+    const unsigned int CHUNK_LAST_IDX = CHUNK_SIZE - 1;
+
+    enum BlockIDs {
+        air = 0,
+    };
 }
