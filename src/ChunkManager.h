@@ -30,10 +30,11 @@ class ChunkManager {
         void unloadChunks(std::vector<glm::ivec3>& chunkPositions);
     public:
         ChunkManager();
-        ~ChunkManager();
 
         // generate terrain
         void generateChunks();
+        // generate chunk meshes
+        void meshChunks(unsigned int size);
         // draw chunks
         void drawChunks(glm::vec3 cameraPosition, glm::vec3 cameraForward, ShaderProgram shaderProgram);
 };

@@ -1,6 +1,7 @@
 #include "ChunkManager.h"
 #include "Shader.h"
 #include "math.h"
+#include <mutex>
 
 
 ChunkManager::ChunkManager() 
@@ -12,13 +13,58 @@ ChunkManager::ChunkManager()
     renderAreaStop_.y = 2;
 }
 
-// todo
+void ChunkManager::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
+    std::lock_guard<std::mutex> g(mtxToGenerate_);
+    for (auto& chunkPos : chunkPositions) {
+        if (!chunks_.contains(chunkPos)) {
+            std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(Chunk(chunkPos));
+            chunks_[chunkPos] = chunk;
+            toGenerate_.push(chunk->metadata_);
+            chunk->metadata_->setToGenerate();
+        }
+    }
+}
+
+void ChunkManager::unloadChunks(std::vector<glm::ivec3>& chunkPositions) {
+    for (auto& chunkPos : chunkPositions) {
+        if (chunks_.contains(chunkPos)) {
+            chunks_[chunkPos]->metadata_->setToUnload();
+            chunks_.erase(chunkPos);
+        }
+    }
+}
+
 void ChunkManager::generateChunks() {
-    for (int y = -1; y < 2; y++) {
-    for (int z = -World::FULL_VIEW_DISTANCE; y < World::FULL_VIEW_DISTANCE; y++) {
-    for (int x = -World::FULL_VIEW_DISTANCE; x < World::FULL_VIEW_DISTANCE; x++) {
-        chunks_[{x, y, z}]->generate(seed_);
-    }}}
+    std::vector<std::shared_ptr<ChunkMetadata>> toMesh;
+    toMesh.reserve(toGenerate_.size());
+    mtxToGenerate_.lock();
+    while (!toGenerate_.empty()) {
+        std::shared_ptr<ChunkMetadata> meta = toGenerate_.front();
+        if (meta->toGenerate()) {
+            meta->getShared()->generate(seed_);
+            meta->setToMesh();
+        }
+        toGenerate_.pop();
+    }
+    mtxToGenerate_.unlock();
+    std::lock_guard<std::mutex> g2(mtxToMesh_);
+    for (auto& meta : toMesh) {
+        toMesh.push_back(meta);
+    }
+}
+
+void ChunkManager::meshChunks(unsigned int size) {
+    int i = 0;
+    std::lock_guard<std::mutex> g(mtxToMesh_);
+    while (!toMesh_.empty() && i < size) {
+        std::shared_ptr<ChunkMetadata> meta = toMesh_.front();
+        if (meta->toMesh()) {
+            meta->getShared()->generate(seed_);
+            meta->setToMesh();
+        }
+        toMesh_.pop();
+        i++;
+    }
 }
 
 void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camForward, ShaderProgram shaderProgram) {
@@ -41,7 +87,6 @@ void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camForward, ShaderProg
         glm::ivec3 renderAreaStop  = glm::max(renderAreaStop_, newRenderAreaStop);
         renderAreaStart_ = newRenderAreaStart;
         renderAreaStop_  = newRenderAreaStop;
-
         
         for (int y = renderAreaStart.y; y < renderAreaStop.y; y++) {
         for (int z = renderAreaStart.z; z < renderAreaStop.z; z++) {

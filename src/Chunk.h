@@ -87,6 +87,7 @@ class Chunk {
 
     public: 
         Chunk(GLint posX, GLint posY, GLint posZ);
+        Chunk(glm::ivec3 pos);
         ~Chunk();
         // Generate all blocks in the chunk
         // todo

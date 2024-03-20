@@ -115,7 +115,24 @@ Chunk::Chunk(GLint posX, GLint posY, GLint posZ)
     offset_ = {posX, posY, posZ};
     offset_ *= World::CHUNK_SIZE;
     position_ = {posX, posY, posZ};
-    position_ *= World::CHUNK_SIZE;
+    // position_ *= World::CHUNK_SIZE;
+
+    metadata_ = std::make_shared<ChunkMetadata>(ChunkMetadata(*this));
+}
+
+Chunk::Chunk(glm::ivec3 pos)
+    : opaqueVAO_(), opaqueVBO_(), visible_(false)
+{
+    opaqueVAO_.bind();
+    opaqueVBO_.bind();
+    opaqueVAO_.linkAttrib(opaqueVBO_, 0, 1, 1, 0);
+    opaqueVBO_.unbind();
+    opaqueVAO_.unbind();
+
+    offset_ = pos;
+    offset_ *= World::CHUNK_SIZE;
+    position_ = pos;
+    // position_ *= World::CHUNK_SIZE;
 
     metadata_ = std::make_shared<ChunkMetadata>(ChunkMetadata(*this));
 }
