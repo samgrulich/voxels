@@ -16,7 +16,7 @@ enum BlockFace {
 
 struct Block {
     glm::ivec3 position_;
-    bool isTransparent;
+    bool isTransparent = true;
     BlockType id;
 
     Block() {}

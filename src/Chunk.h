@@ -73,9 +73,10 @@ class Chunk {
         glm::vec3 offset_;
         // position 
         glm::ivec3 position_;
-        ChunkMetadata metadata_;
+        std::shared_ptr<ChunkMetadata> metadata_;
         // block data
         Block blocks_[World::CHUNK_SIZE_POW3]; 
+        bool visible_;
 
     private:
         VAO opaqueVAO_;
@@ -88,6 +89,7 @@ class Chunk {
         Chunk(GLint posX, GLint posY, GLint posZ);
         ~Chunk();
         // Generate all blocks in the chunk
+        // todo
         void generate(GLuint seed);
         // rebuild the mesh
         void remesh();

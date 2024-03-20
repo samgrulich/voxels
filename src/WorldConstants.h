@@ -1,13 +1,20 @@
 namespace World {
-    const unsigned int VIEW_DISTANCE = 2;
-    const unsigned int FULL_VIEW_DISTANCE = VIEW_DISTANCE*2+1;
+    const unsigned int VIEW_DISTANCE = 2; // radius of the view distance
+    const unsigned int FULL_VIEW_DISTANCE = VIEW_DISTANCE*2+1; // diameter of the view distance
 
-    const unsigned int CHUNK_SIZE = 32;
-    const unsigned int CHUNK_SIZE_POW2 = CHUNK_SIZE*CHUNK_SIZE;
-    const unsigned int CHUNK_SIZE_POW3 = CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE;
-    const unsigned int CHUNK_LAST_IDX = CHUNK_SIZE - 1;
+    const unsigned int CHUNK_SIZE = 32; // size of chunk side
+    const unsigned int CHUNK_SIZE_POW2 = CHUNK_SIZE*CHUNK_SIZE; // 2nd power of chunk side
+    const unsigned int CHUNK_SIZE_POW3 = CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE; // 3rd power of chunk side
+    const unsigned int CHUNK_SIZE_HALF = CHUNK_SIZE / 2; // half of the shunk side
+    const unsigned int CHUNK_LAST_IDX = CHUNK_SIZE - 1; // the last index if we have an array of the length of chunk size
+
+    const unsigned int DEFAULT_SEED = 7;    // The default seed (8th number)
 
     enum BlockIDs {
-        air = 0,
+        air = 0, // first 24 numbers are reserved for transparent blocks
+        glass = 1,
+        dirt  = 24,
+        stone = 25, 
+        grass = 26,
     };
 }

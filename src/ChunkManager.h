@@ -6,26 +6,34 @@
 #include <memory>
 
 #include "Chunk.h"
+#include "Shader.h"
 
 
 
 class ChunkManager {
     private:
+        float seed_;
+
         std::mutex mtxToGenerate_;
-        std::queue<ChunkMetadata> toGenerate_;
+        std::queue<std::shared_ptr<ChunkMetadata>> toGenerate_;
         std::mutex mtxToMesh_;
-        std::queue<ChunkMetadata> toMesh_;
-        std::mutex mtxActive_;
-        std::unordered_map<glm::ivec3, ChunkMetadata> active_;
-        glm::vec3 lastCameraPosition;
-        glm::vec3 lastCameraForward;
+        std::queue<std::shared_ptr<ChunkMetadata>> toMesh_;
+
+        glm::ivec3 renderAreaStart_;
+        glm::ivec3 renderAreaStop_;
+        glm::vec3 lastCameraPosition_;
+        glm::vec3 lastCameraForward_;
     private:
+        // load thread safely chunks in the list
         void loadChunks(std::vector<glm::ivec3>& chunkPositions);
+        // unload safely chunks in the list
         void unloadChunks(std::vector<glm::ivec3>& chunkPositions);
     public:
         ChunkManager();
         ~ChunkManager();
 
+        // generate terrain
         void generateChunks();
-        void renderChunks();
+        // draw chunks
+        void drawChunks(glm::vec3 cameraPosition, glm::vec3 cameraForward, ShaderProgram shaderProgram);
 };
