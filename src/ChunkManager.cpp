@@ -1,5 +1,10 @@
 #include "ChunkManager.h"
 
+#include <format>
+#include <iostream>
+#include <glm/ext.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 
 ChunkManager::ChunkManager() 
     : seed_(World::DEFAULT_SEED)
@@ -15,10 +20,8 @@ void ChunkManager::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (auto& chunkPos : chunkPositions) {
         if (!chunks_.contains(chunkPos)) {
             std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(chunkPos);
-            chunk->metadata_->setChunkPtr(chunk);
             chunks_[chunkPos] = chunk;
             toGenerate_.push(chunk->metadata_);
-            chunk->metadata_->setToGenerate();
         }
     }
 }
@@ -26,6 +29,7 @@ void ChunkManager::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
 void ChunkManager::unloadChunks(std::vector<glm::ivec3>& chunkPositions) {
     for (auto& chunkPos : chunkPositions) {
         if (chunks_.contains(chunkPos)) {
+            std::cout << "Unloading chunk" << std::endl;
             chunks_[chunkPos]->metadata_->setToUnload();
             chunks_.erase(chunkPos);
         }
@@ -37,9 +41,10 @@ void ChunkManager::generateChunks() {
     toMesh.reserve(toGenerate_.size());
     mtxToGenerate_.lock();
     while (!toGenerate_.empty()) {
+        std::cout << "Generating chunks" << std::endl;
         std::shared_ptr<ChunkMetadata> meta = toGenerate_.front();
         if (meta->toGenerate()) {
-            meta->getShared()->generate(seed_);
+            chunks_[meta->position()]->generate(seed_);
             meta->setToMesh();
         }
         toGenerate_.pop();
@@ -57,68 +62,73 @@ void ChunkManager::meshChunks(unsigned int size) {
     while (!toMesh_.empty() && i < size) {
         std::shared_ptr<ChunkMetadata> meta = toMesh_.front();
         if (meta->toMesh()) {
-            meta->getShared()->generate(seed_);
-            meta->setToMesh();
+            chunks_[meta->position()]->mesh();
+            meta->setToUpload();
         }
         toMesh_.pop();
         i++;
     }
 }
 
-void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camForward, ShaderProgram& shaderProgram) {
-    if (lastCameraPosition_ != camPos || lastCameraForward_ != camForward) {
+void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camFwd, ShaderProgram& shaderProgram) {
+    if (lastCameraPosition_ != camPos || lastCameraForward_ != camFwd) {
+        glm::vec3 cameraPosition = camPos;
+        glm::vec3 cameraForward  = camFwd;
         // shift camera a chunk backwards 
-        camPos.x = (-1 * camForward.x) * World::CHUNK_SIZE;
-        camPos.z = (-1 * camForward.z) * World::CHUNK_SIZE;
+        camPos.x = (-1 * camFwd.x) * World::CHUNK_SIZE;
+        camPos.z = (-1 * camFwd.z) * World::CHUNK_SIZE;
 
-        // frustum culling
+        // fov for frustum culling
         float rotateAngle = 70.0f;
         // 2nd power of minimal distance to chunk to consider it for drawing
-        float minRenderDistance = World::CHUNK_SIZE_POW2; 
+        float maxRenderDistance = (World::VIEW_DISTANCE+1)*(World::VIEW_DISTANCE+1); 
 
         std::vector<glm::ivec3> toLoad;
         std::vector<glm::ivec3> toUnload;
-        glm::vec3 camChunkPos = glm::mod(camPos, glm::vec3(World::CHUNK_SIZE));
-        glm::ivec3 newRenderAreaStart = camChunkPos - glm::vec3(World::VIEW_DISTANCE);
-        glm::ivec3 newRenderAreaStop  = camChunkPos + glm::vec3(World::VIEW_DISTANCE);
+        glm::ivec3 camChunkPos = cameraPosition / glm::vec3(World::CHUNK_SIZE);
+        glm::ivec3 newRenderAreaStart = camChunkPos - glm::ivec3(World::VIEW_DISTANCE);
+        glm::ivec3 newRenderAreaStop  = camChunkPos + glm::ivec3(World::VIEW_DISTANCE);
+        newRenderAreaStart.y = -1;
+        newRenderAreaStop.y = 2;
         glm::ivec3 renderAreaStart = glm::min(renderAreaStart_, newRenderAreaStart);
-        glm::ivec3 renderAreaStop  = glm::max(renderAreaStop_, newRenderAreaStop);
+        glm::ivec3 renderAreaStop  = glm::max(renderAreaStop_,  newRenderAreaStop);
         renderAreaStart_ = newRenderAreaStart;
         renderAreaStop_  = newRenderAreaStop;
         
         for (int y = renderAreaStart.y; y < renderAreaStop.y; y++) {
         for (int z = renderAreaStart.z; z < renderAreaStop.z; z++) {
         for (int x = renderAreaStart.x; x < renderAreaStop.x; x++) {
-            glm::vec3 chunkPosition(x*World::CHUNK_SIZE, y*World::CHUNK_SIZE, z*World::CHUNK_SIZE);
-            glm::vec3 chunkCenter = chunkPosition + glm::vec3(World::CHUNK_SIZE_HALF);
-            glm::vec3 relativeChunkCenter = chunkCenter - camPos;
+            glm::ivec3 chunkPosition(x, y, z);
+            glm::vec3 relativeChunkCenter = chunkPosition - camChunkPos;
             float distanceToChunk = glm::dot(relativeChunkCenter, relativeChunkCenter);
 
             // todo: add frustum culling
-            if (!chunks_.contains({x, y, z})) {
+            if (chunks_.contains({x, y, z})) {
+                if (distanceToChunk <= maxRenderDistance) {
+                    chunks_[{x, y, z}]->draw(shaderProgram, true);
+                    chunks_[{x, y, z}]->visible_ = true;
+                } else {
+                    toUnload.push_back({x, y, z});
+                    chunks_[{x, y, z}]->visible_ = false;
+                }
+            } else if (distanceToChunk <= maxRenderDistance){
                 toLoad.push_back({x, y, z});
-            } else if (distanceToChunk <= minRenderDistance) {
-                chunks_[{x, y, z}]->draw(shaderProgram, true);
-                chunks_[{x, y, z}]->visible_ = true;
-            } else {
-                toUnload.push_back({x, y, z});
-                chunks_[{x, y, z}]->visible_ = false;
             }
         }}}
 
         loadChunks(toLoad);
         unloadChunks(toUnload);
 
-        lastCameraPosition_ = camPos;
-        lastCameraForward_  = camForward;
+        lastCameraPosition_ = cameraPosition;
+        lastCameraForward_  = cameraForward;
     } else {
         for (int y = renderAreaStart_.y; y < renderAreaStop_.y; y++) {
         for (int z = renderAreaStart_.z; z < renderAreaStop_.z; z++) {
         for (int x = renderAreaStart_.x; x < renderAreaStop_.x; x++) {
-            if (chunks_[{x, y, z}]->visible_)
-                chunks_[{x, y, z}]->draw(shaderProgram, true);
+            if (std::shared_ptr<Chunk>& chunk = chunks_[{x, y, z}]) {
+                if (chunk->visible_ && chunk->metadata_->isActive())
+                    chunk->draw(shaderProgram, true);
+            }
         }}}
     }
-
-    // todo: render transparent
 }

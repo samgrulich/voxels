@@ -30,11 +30,11 @@ class ChunkMetadata {
         bool isActive_;
         glm::ivec3 position_;
         glm::ivec3 offset_;
-        std::shared_ptr<Chunk> chunk_;
     public:
+        // create new metadata at pos (0, 0, 0) in generate stage
         ChunkMetadata();
+        // create new metadata at given position in generate stage
         ChunkMetadata(glm::ivec3 position);
-        ChunkMetadata(std::shared_ptr<Chunk>& chunk);
 
         // set the chunk state to generate stage
         void setToGenerate();
@@ -57,11 +57,6 @@ class ChunkMetadata {
         // returns true if chunk is active
         bool isActive();
 
-        void setChunkPtr(std::shared_ptr<Chunk>& chunk);
-        // get weak poitner to the chunk
-        std::weak_ptr<Chunk> getWeak();
-        // get shared poitner to the chunk
-        std::shared_ptr<Chunk> getShared();
         // get position
         glm::ivec3 position();
 };
@@ -75,7 +70,7 @@ class Chunk {
         glm::ivec3 position_;
         std::shared_ptr<ChunkMetadata> metadata_;
         // block data
-        Block blocks_[World::CHUNK_SIZE_POW3]; 
+        Block* blocks_;
         bool visible_;
 
     private:
@@ -92,6 +87,8 @@ class Chunk {
         // Generate all blocks in the chunk
         // todo
         void generate(GLuint seed);
+        // pack block vertices and add them to the vertices list
+        void mesh();
         // rebuild the mesh
         void remesh();
 
@@ -107,8 +104,6 @@ class Chunk {
         void draw(ShaderProgram& shaderProgram, bool renderOpaque);
 
     private:
-        // pack block vertices and add them to the vertices list
-        void generateMesh();
         // creates face and adds it into the vertices vector
         void generateFace(Block& block, GLuint faceIndex);
 };

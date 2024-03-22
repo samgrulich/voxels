@@ -10,34 +10,13 @@ ChunkMetadata::ChunkMetadata()
 {
     position_ = {0, 0, 0};
     offset_ = {0, 0, 0};
-    chunk_ = nullptr;
-}
-
-ChunkMetadata::ChunkMetadata(std::shared_ptr<Chunk>& chunk) 
-    : toGenerate_(true), toMesh_(false), toUpload_(false), isActive_(false)
-{
-    position_ = chunk->position_;
-    offset_ = chunk->offset_;
-    chunk_ = chunk;
 }
 
 ChunkMetadata::ChunkMetadata(glm::ivec3 position) 
     : toGenerate_(true), toMesh_(false), toUpload_(false), isActive_(false), 
-    position_(position), chunk_(nullptr)
+    position_(position)
 {
     offset_ = position * (const int)World::CHUNK_SIZE;
-    auto it = chunks_.find(position);
-    if (it != chunks_.end()) {
-        auto chunk = it->second;
-        ChunkMetadata& chunkMeta = *chunk->metadata_;
-        toGenerate_ = chunkMeta.toGenerate_;
-        toMesh_ = chunkMeta.toMesh_;
-        toUpload_ = chunkMeta.toUpload_;
-        isActive_ = chunkMeta.isActive_;
-        position_ = chunkMeta.position_;
-        offset_ = chunkMeta.offset_;
-        chunk_ = chunk;
-    }
 }
 
 void ChunkMetadata::setToGenerate() {
@@ -51,6 +30,13 @@ void ChunkMetadata::setToMesh() {
     toGenerate_ = false;
     toMesh_ = true;
     toUpload_ = false;
+    isActive_ = false;
+}
+
+void ChunkMetadata::setToUpload() {
+    toGenerate_ = false;
+    toMesh_ = false;
+    toUpload_ = true;
     isActive_ = false;
 }
 
@@ -84,18 +70,6 @@ bool ChunkMetadata::isActive() {
     return isActive_;
 }
 
-void ChunkMetadata::setChunkPtr(std::shared_ptr<Chunk>& chunk) {
-    chunk_ = chunk;
-}
-
-std::weak_ptr<Chunk> ChunkMetadata::getWeak() {
-    return chunk_;
-}
-
-std::shared_ptr<Chunk> ChunkMetadata::getShared() {
-    return chunk_;
-}
-
 glm::ivec3 ChunkMetadata::position() {
     return position_;
 }
@@ -109,10 +83,11 @@ Chunk::Chunk(GLint posX, GLint posY, GLint posZ)
     opaqueVBO_.unbind();
     opaqueVAO_.unbind();
 
+    blocks_ = new Block[World::CHUNK_SIZE_POW3]; 
+
     offset_ = {posX, posY, posZ};
     offset_ *= World::CHUNK_SIZE;
     position_ = {posX, posY, posZ};
-    // position_ *= World::CHUNK_SIZE;
 
     metadata_ = std::make_shared<ChunkMetadata>(position_);
 }
@@ -126,11 +101,11 @@ Chunk::Chunk(glm::ivec3 pos)
     opaqueVBO_.unbind();
     opaqueVAO_.unbind();
 
+    blocks_ = new Block[World::CHUNK_SIZE_POW3]; 
+
     offset_ = pos;
     offset_ *= World::CHUNK_SIZE;
     position_ = pos;
-    std::cout << "Initialize" << glm::to_string(pos) << std::endl;
-    // position_ *= World::CHUNK_SIZE;
 
     metadata_ = std::make_shared<ChunkMetadata>(position_);
 }
@@ -139,6 +114,7 @@ Chunk::~Chunk() {
     opaqueVAO_.remove();
     opaqueVBO_.remove();
     opaqueVertices_.clear();
+    delete blocks_;
 }
 
 // todo
@@ -192,11 +168,12 @@ void Chunk::generateFace(Block& block, GLuint faceIndex) {
     opaqueVertices_.push_back(packedVertexFive);
 }
 
-void Chunk::generateMesh() {
+void Chunk::mesh() {
     for (int z = 0; z < World::CHUNK_SIZE; z++)
     for (int y = 0; y < World::CHUNK_SIZE; y++)
     for (int x = 0; x < World::CHUNK_SIZE; x++) {
         Block block = getBlock(x, y, z);
+        // todo: what if the chunks_[pos] is outside of the loaded chunks
         if (block.id != World::BlockIDs::air) {
             // we want to render the face if an adjancent block
             // is air. 
@@ -272,12 +249,11 @@ void Chunk::generateMesh() {
 
 void Chunk::remesh() {
     opaqueVertices_.clear();
-
     metadata_->setToMesh();
 }
 
 void Chunk::draw(ShaderProgram& shaderProgram, bool renderOpaque) {
-    if (metadata_->toUpload()) { // if chunk is meshed and wait for upload
+    if (metadata_->toUpload()) { // if chunk is meshed and is waiting for upload
         // upload the mesh to the GPU
         opaqueVAO_.bind();
         opaqueVBO_.set(opaqueVertices_);
