@@ -5,7 +5,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <GLFW/glfw3.h>
 
-#include "camera.h"
+#include "Camera.h"
 
 #define IS_KEY_DOWN(key) glfwGetKey(win, key) == GLFW_PRESS
 
@@ -101,4 +101,8 @@ void Camera::handleInput(GLFWwindow *win, float deltaTime) {
     position += movement_delta * -1.0f; // debuging for now
     view_ = glm::lookAtRH(position, position+front_, up_);
     viewProjection = projection_ * view_;
+}
+
+glm::vec3& Camera::front() {
+    return front_;
 }

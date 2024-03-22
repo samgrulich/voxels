@@ -36,5 +36,5 @@ class ChunkManager {
         // generate chunk meshes
         void meshChunks(unsigned int size);
         // draw chunks
-        void drawChunks(glm::vec3 cameraPosition, glm::vec3 cameraForward, ShaderProgram shaderProgram);
+        void drawChunks(glm::vec3 cameraPosition, glm::vec3 cameraForward, ShaderProgram& shaderProgram);
 };

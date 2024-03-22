@@ -33,9 +33,8 @@ class ChunkMetadata {
         std::shared_ptr<Chunk> chunk_;
     public:
         ChunkMetadata();
-        ChunkMetadata(Chunk& chunk);
-        ChunkMetadata(std::weak_ptr<Chunk> chunk);
         ChunkMetadata(glm::ivec3 position);
+        ChunkMetadata(std::shared_ptr<Chunk>& chunk);
 
         // set the chunk state to generate stage
         void setToGenerate();
@@ -58,6 +57,7 @@ class ChunkMetadata {
         // returns true if chunk is active
         bool isActive();
 
+        void setChunkPtr(std::shared_ptr<Chunk>& chunk);
         // get weak poitner to the chunk
         std::weak_ptr<Chunk> getWeak();
         // get shared poitner to the chunk
@@ -104,7 +104,7 @@ class Chunk {
         // set block value
         void setBlock(Block block);
         // draw the chunk
-        void draw(ShaderProgram shaderProgram, bool renderOpaque);
+        void draw(ShaderProgram& shaderProgram, bool renderOpaque);
 
     private:
         // pack block vertices and add them to the vertices list

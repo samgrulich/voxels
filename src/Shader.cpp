@@ -5,9 +5,10 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <stdexcept>
 
-#include "glcommon.h"
-#include "shader.h"
+#include "GLCommon.h"
+#include "Shader.h"
 
 #define SHADER_BUFFER_INIT_SIZE 1024
 #define ERR_MSG_BUFFER_SIZE 1024
@@ -147,10 +148,10 @@ void ShaderProgram::compileAndLink() {
     vertex_ = create_shader_program(GL_VERTEX_SHADER, vertexPath_);
     fragment_ = create_shader_program(GL_FRAGMENT_SHADER, fragmentPath_);
 
-    glAttachShader(id, vertex_);
-    glAttachShader(id, fragment_);
-    glLinkProgram(id);
-    glValidateProgram(id);
+    GLCall(glAttachShader(id, vertex_));
+    GLCall(glAttachShader(id, fragment_));
+    GLCall(glLinkProgram(id));
+    GLCall(glValidateProgram(id));
 
     int is_linked, is_valid;
     glGetProgramiv(id, GL_LINK_STATUS, &is_linked);

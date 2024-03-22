@@ -1,6 +1,10 @@
 #include "Chunk.h"
 #include "GLCommon.h"
 
+#include <iostream>
+#include "glm/ext.hpp"
+#include "glm/gtx/string_cast.hpp"
+
 ChunkMetadata::ChunkMetadata() 
     : toGenerate_(true), toMesh_(false), toUpload_(false), isActive_(false)
 {
@@ -9,23 +13,12 @@ ChunkMetadata::ChunkMetadata()
     chunk_ = nullptr;
 }
 
-ChunkMetadata::ChunkMetadata(Chunk& chunk) 
+ChunkMetadata::ChunkMetadata(std::shared_ptr<Chunk>& chunk) 
     : toGenerate_(true), toMesh_(false), toUpload_(false), isActive_(false)
 {
-    position_ = chunk.position_;
-    offset_ = chunk.offset_;
-    chunk_  = nullptr;
-}
-
-ChunkMetadata::ChunkMetadata(std::weak_ptr<Chunk> chunk)  {
-    ChunkMetadata& chunkMeta = *chunk.lock()->metadata_;
-    toGenerate_ = chunkMeta.toGenerate_;
-    toMesh_ = chunkMeta.toMesh_;
-    toUpload_ = chunkMeta.toUpload_;
-    isActive_ = chunkMeta.isActive_;
-    position_ = chunkMeta.position_;
-    offset_ = chunkMeta.offset_;
-    chunk = std::make_shared<Chunk>(chunk);
+    position_ = chunk->position_;
+    offset_ = chunk->offset_;
+    chunk_ = chunk;
 }
 
 ChunkMetadata::ChunkMetadata(glm::ivec3 position) 
@@ -43,7 +36,7 @@ ChunkMetadata::ChunkMetadata(glm::ivec3 position)
         isActive_ = chunkMeta.isActive_;
         position_ = chunkMeta.position_;
         offset_ = chunkMeta.offset_;
-        chunk = std::make_shared<Chunk>(chunk);
+        chunk_ = chunk;
     }
 }
 
@@ -91,6 +84,10 @@ bool ChunkMetadata::isActive() {
     return isActive_;
 }
 
+void ChunkMetadata::setChunkPtr(std::shared_ptr<Chunk>& chunk) {
+    chunk_ = chunk;
+}
+
 std::weak_ptr<Chunk> ChunkMetadata::getWeak() {
     return chunk_;
 }
@@ -117,7 +114,7 @@ Chunk::Chunk(GLint posX, GLint posY, GLint posZ)
     position_ = {posX, posY, posZ};
     // position_ *= World::CHUNK_SIZE;
 
-    metadata_ = std::make_shared<ChunkMetadata>(ChunkMetadata(*this));
+    metadata_ = std::make_shared<ChunkMetadata>(position_);
 }
 
 Chunk::Chunk(glm::ivec3 pos)
@@ -132,20 +129,21 @@ Chunk::Chunk(glm::ivec3 pos)
     offset_ = pos;
     offset_ *= World::CHUNK_SIZE;
     position_ = pos;
+    std::cout << "Initialize" << glm::to_string(pos) << std::endl;
     // position_ *= World::CHUNK_SIZE;
 
-    metadata_ = std::make_shared<ChunkMetadata>(ChunkMetadata(*this));
+    metadata_ = std::make_shared<ChunkMetadata>(position_);
 }
 
 Chunk::~Chunk() {
     opaqueVAO_.remove();
     opaqueVBO_.remove();
-    delete[] &opaqueVertices_;
-    delete[] &blocks_;
+    opaqueVertices_.clear();
 }
 
 // todo
 void Chunk::generate(GLuint seed) {
+    std::cout << glm::to_string(position_) << std::endl;
     if (position_.y <= 0) {
         for (int y = 0; y < World::CHUNK_SIZE; y++) {
         for (int z = 0; z < World::CHUNK_SIZE; z++) {
@@ -278,7 +276,7 @@ void Chunk::remesh() {
     metadata_->setToMesh();
 }
 
-void Chunk::draw(ShaderProgram shaderProgram, bool renderOpaque) {
+void Chunk::draw(ShaderProgram& shaderProgram, bool renderOpaque) {
     if (metadata_->toUpload()) { // if chunk is meshed and wait for upload
         // upload the mesh to the GPU
         opaqueVAO_.bind();
@@ -288,7 +286,7 @@ void Chunk::draw(ShaderProgram shaderProgram, bool renderOpaque) {
     }
 
     if (metadata_->isActive()) {
-        shaderProgram.set("u_chunkOffset", offset_);
+        shaderProgram.set("u_ChunkOffset", offset_);
         if (renderOpaque) {
             opaqueVAO_.bind();
             GLCall(glDrawArrays(GL_TRIANGLES, 0, opaqueVertices_.size()));

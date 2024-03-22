@@ -1,7 +1,4 @@
 #include "ChunkManager.h"
-#include "Shader.h"
-#include "math.h"
-#include <mutex>
 
 
 ChunkManager::ChunkManager() 
@@ -17,7 +14,8 @@ void ChunkManager::loadChunks(std::vector<glm::ivec3>& chunkPositions) {
     std::lock_guard<std::mutex> g(mtxToGenerate_);
     for (auto& chunkPos : chunkPositions) {
         if (!chunks_.contains(chunkPos)) {
-            std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(Chunk(chunkPos));
+            std::shared_ptr<Chunk> chunk = std::make_shared<Chunk>(chunkPos);
+            chunk->metadata_->setChunkPtr(chunk);
             chunks_[chunkPos] = chunk;
             toGenerate_.push(chunk->metadata_);
             chunk->metadata_->setToGenerate();
@@ -67,7 +65,7 @@ void ChunkManager::meshChunks(unsigned int size) {
     }
 }
 
-void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camForward, ShaderProgram shaderProgram) {
+void ChunkManager::drawChunks(glm::vec3 camPos, glm::vec3 camForward, ShaderProgram& shaderProgram) {
     if (lastCameraPosition_ != camPos || lastCameraForward_ != camForward) {
         // shift camera a chunk backwards 
         camPos.x = (-1 * camForward.x) * World::CHUNK_SIZE;

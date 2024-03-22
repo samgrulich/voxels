@@ -10,9 +10,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <thread>
 
-#include "camera.h"
-#include "shader.h"
-#include "chunk.h"
+#include "Camera.h"
+#include "Shader.h"
+#include "Chunk.h"
+#include "ChunkManager.h"
 
 /* TODOS:
  *  optimize chunk generation/meshing
@@ -43,7 +44,7 @@ void changeDrawMode() {
     }
 }
 
-void startChunkGeneration(World *world) {
+void startChunkGeneration(ChunkManager *world) {
     using namespace std::chrono_literals;
     while (!s_state.shouldWindowClose) {
         world->generateChunks();
@@ -51,10 +52,10 @@ void startChunkGeneration(World *world) {
     }
 }
 
-void startChunkMeshing(World *world) {
+void startChunkMeshing(ChunkManager *world) {
     using namespace std::chrono_literals;
     while (!s_state.shouldWindowClose) {
-        world->meshChunks();
+        world->meshChunks(World::CHUNK_TOLOAD_BATCH);
         std::this_thread::sleep_for(250ms);
     }
 }
@@ -98,8 +99,9 @@ int main(void) {
 
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
-    ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    World world(cam.position);
+    // ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
+    ShaderProgram cubeShader("res/shaders/cube.vert", "res/shaders/cube.frag");
+    ChunkManager world;
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
 
     s_state.cam = &cam;
@@ -111,8 +113,8 @@ int main(void) {
     glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    std::thread t1(startChunkGeneration, &world);
-    std::thread t2(startChunkMeshing, &world);
+    // std::thread t1(startChunkGeneration, &world);
+    // std::thread t2(startChunkMeshing, &world);
     auto start = std::chrono::steady_clock::now();
     auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
@@ -139,14 +141,19 @@ int main(void) {
 
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        basicShader.bind();
-        basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
-        basicShader.set("u_MVP", cam.viewProjection);
+        // basicShader.bind();
+        // basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
+        // basicShader.set("u_MVP", cam.viewProjection);
+        cubeShader.bind();
+        // cubeShader.set("u_color", 1.0f, 1.0f, 1.0f);
+        cubeShader.set("u_MVP", cam.viewProjection);
 
-        world.draw();
-        world.updateRegion(cam.position);
+        world.generateChunks();
+        world.meshChunks(10);
+        world.drawChunks(cam.position, cam.front(), cubeShader);
         // world.meshChunks();
-        basicShader.refresh();
+        // basicShader.refresh();
+        cubeShader.refresh();
 
         // IMGUI Rendering
         ImGui::Render();
@@ -166,8 +173,8 @@ int main(void) {
     }
 
     s_state.shouldWindowClose = true;
-    t1.join();
-    t2.join();
+    // t1.join();
+    // t2.join();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
