@@ -6,8 +6,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "glcommon.h"
-#include "shader.h"
+#include "GLCommon.h"
+#include "Shader.h"
 
 #define SHADER_BUFFER_INIT_SIZE 1024
 #define ERR_MSG_BUFFER_SIZE 1024

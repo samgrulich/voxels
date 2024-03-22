@@ -5,7 +5,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <GLFW/glfw3.h>
 
-#include "camera.h"
+#include "Camera.h"
 
 #define IS_KEY_DOWN(key) glfwGetKey(win, key) == GLFW_PRESS
 

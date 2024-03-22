@@ -10,9 +10,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <thread>
 
-#include "camera.h"
-#include "shader.h"
-#include "chunk.h"
+#include "Camera.h"
+#include "Shader.h"
+#include "Chunk.h"
 
 /* TODOS:
  *  optimize chunk generation/meshing

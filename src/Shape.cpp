@@ -1,7 +1,7 @@
 #include <GL/glew.h>
 
-#include "shape.h"
-#include "glcommon.h"
+#include "Shape.h"
+#include "GLCommon.h"
 
 
 Shape::Shape(std::vector<float> vertices, std::vector<unsigned int> indices)

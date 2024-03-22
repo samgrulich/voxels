@@ -5,7 +5,7 @@
 #include <glm/matrix.hpp>
 #include <GL/glew.h>
 
-#include "glcommon.h"
+#include "GLCommon.h"
 
 
 struct VblElement {
