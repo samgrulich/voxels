@@ -10,15 +10,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Camera.h"
-#include "ChunkManager.h"
 #include "Shader.h"
+#include "Block.h"
 
 /* TODOS:
- *  optimize chunk generation/meshing
- *  fix segfault on loading and unloading simultaneously mulitple regions (missing check)
- *  fix not unloading chunks properly
- *  fix chunk generation (meshes between chunks)
- *  ? frustum chunk generation
+ *  remove chunks
  */
 
 static struct State {
@@ -50,7 +46,7 @@ int main(void) {
     /* Create a windowed mode window and its OpenGL context */
     glfwWindowHint(GLFW_RESIZABLE, false);
     glfwWindowHint(GLFW_SAMPLES, 4);
-    s_state.win = glfwCreateWindow(s_state.winSize.x, s_state.winSize.y, "Hola", NULL, NULL);
+    s_state.win = glfwCreateWindow(s_state.winSize.x, s_state.winSize.y, "Development", NULL, NULL);
     if (!s_state.win) {
         glfwTerminate();
         return -1;
@@ -81,9 +77,13 @@ int main(void) {
 
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
+    cam.position = {0.0f, 0.5f, -2.0f};
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    ChunkManager manager;
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
+    Blocks blocks = Blocks();
+    Block block = Block(glm::vec3(0.0f, 0.0f, 0.0f));
+    blocks.add(block);
+    blocks.upload();
 
     s_state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -92,7 +92,8 @@ int main(void) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     // glEnable(GL_CULL_FACE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (s_state.drawLines)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // std::thread t1(startChunkGeneration, &world);
     // std::thread t2(startChunkMeshing, &world);
@@ -126,9 +127,11 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        manager.generateChunks();
-        manager.meshChunks(5);
-        manager.drawChunks(cam.position, cam.front(), basicShader);
+        // manager.generateChunks();
+        // manager.meshChunks(5);
+        // manager.drawChunks(cam.position, cam.front(), basicShader);
+        blocks.draw(basicShader);
+
         basicShader.refresh();
 
         // IMGUI Rendering

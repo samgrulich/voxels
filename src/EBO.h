@@ -12,7 +12,7 @@ struct EBO {
      * (note that the VBO needs to be deleted 
      *   by user by calling Delete())
      */
-    EBO(std::vector<GLfloat> indices);
+    EBO(std::vector<unsigned int> indices);
     /*
      * Creates empty VBO
      *
