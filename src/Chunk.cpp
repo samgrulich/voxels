@@ -124,9 +124,9 @@ void Chunk::generate() {
 }
 
 void Chunk::mesh() {
-    for (int z = 0; z < CHUNK_SIDE; z++) {
-        for (int y = 0; y < CHUNK_SIDE; y++) {
-            for (int x = 0; x < CHUNK_SIDE; x++) {
+    for (int z = 0; z < World::CHUNK_SIZE; z++) {
+        for (int y = 0; y < World::CHUNK_SIZE; y++) {
+            for (int x = 0; x < World::CHUNK_SIZE; x++) {
                 uint8_t opaqueBitmask = 0x0;
                 uint8_t b   = getBlock({x, y, z});
                 if (b != 0) {
@@ -174,12 +174,14 @@ void Chunk::draw(ShaderProgram& shaderProgram) {
         VBO_.set(vertices_);
         VAO_.unbind();
         isActive_ = true;
+        toUpload_ = false;
     }
 
     if (isActive_ && isVisible_) {
         shaderProgram.bind();
         VAO_.bind();
         GLCall(glDrawArrays(GL_TRIANGLES, 0, vertices_.size()));
+        VAO_.unbind();
     }
 }
 

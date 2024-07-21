@@ -20,4 +20,5 @@ class Camera {
 
         void updateAspect(float newAspect);
         void handleInput(GLFWwindow *win, float deltaTime);
+        glm::vec3 front();
 };

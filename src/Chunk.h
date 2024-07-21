@@ -14,11 +14,6 @@
 
 #include "Shape.h"
 
-#define CHUNK_SIDE 32
-#define CHUNK_SIDE_POW2 CHUNK_SIDE*CHUNK_SIDE
-#define CHUNK_SIDE_POW3 CHUNK_SIDE*CHUNK_SIDE*CHUNK_SIDE
-
-
 struct Node {
     Node* children[8] = {nullptr};
     bool isLeaf = false;

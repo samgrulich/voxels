@@ -68,13 +68,13 @@ class ChunkManager {
         std::queue<std::shared_ptr<Chunk>> toMesh_;
         glm::ivec3 renderAreaStart_;
         glm::ivec3 renderAreaEnd_;
-        glm::vec3 lastCameraPostion;
-        glm::vec3 lastCameraForward;
+        glm::vec3 lastCameraPostion_;
+        glm::vec3 lastCameraForward_;
     private:
         // loads chunk with extra checks
-        void loadChunks  (std::vector<glm::ivec3>& chunkPositins);
+        void loadChunks  (std::vector<glm::ivec3>& chunkPositions);
         // unloads chunk with extra checks
-        void unloadChunks(std::vector<glm::ivec3>& chunkPositins);
+        void unloadChunks(std::vector<glm::ivec3>& chunkPositions);
     public:
         ChunkManager();
 

@@ -8,11 +8,10 @@
 #include <imgui/imgui_impl_opengl3.h>
 
 #include <glm/gtc/matrix_transform.hpp>
-#include <thread>
 
 #include "Camera.h"
+#include "ChunkManager.h"
 #include "Shader.h"
-#include "Chunk.h"
 
 /* TODOS:
  *  optimize chunk generation/meshing
@@ -40,22 +39,6 @@ void changeDrawMode() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     } else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-}
-
-void startChunkGeneration(World *world) {
-    using namespace std::chrono_literals;
-    while (!s_state.shouldWindowClose) {
-        world->generateChunks();
-        std::this_thread::sleep_for(250ms);
-    }
-}
-
-void startChunkMeshing(World *world) {
-    using namespace std::chrono_literals;
-    while (!s_state.shouldWindowClose) {
-        world->meshChunks();
-        std::this_thread::sleep_for(250ms);
     }
 }
 
@@ -99,7 +82,7 @@ int main(void) {
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
-    World world(cam.position);
+    ChunkManager manager;
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
 
     s_state.cam = &cam;
@@ -108,16 +91,16 @@ int main(void) {
     glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_CULL_FACE);
+    // glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    std::thread t1(startChunkGeneration, &world);
-    std::thread t2(startChunkMeshing, &world);
-    auto start = std::chrono::steady_clock::now();
+    // std::thread t1(startChunkGeneration, &world);
+    // std::thread t2(startChunkMeshing, &world);
+    auto start     = std::chrono::steady_clock::now();
     auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_state.win)) {
-        auto thisFrame = std::chrono::steady_clock::now();
+        auto thisFrame  = std::chrono::steady_clock::now();
         float frameTime = std::chrono::duration_cast<std::chrono::microseconds>(thisFrame - lastFrame).count() * 0.001;
         float deltaTime = frameTime * 0.001;
         lastFrame = std::chrono::steady_clock::now();
@@ -143,9 +126,9 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        world.draw();
-        world.updateRegion(cam.position);
-        // world.meshChunks();
+        manager.generateChunks();
+        manager.meshChunks(5);
+        manager.drawChunks(cam.position, cam.front(), basicShader);
         basicShader.refresh();
 
         // IMGUI Rendering
@@ -166,8 +149,8 @@ int main(void) {
     }
 
     s_state.shouldWindowClose = true;
-    t1.join();
-    t2.join();
+    // t1.join();
+    // t2.join();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

@@ -102,3 +102,7 @@ void Camera::handleInput(GLFWwindow *win, float deltaTime) {
     view_ = glm::lookAtRH(position, position+front_, up_);
     viewProjection = projection_ * view_;
 }
+
+glm::vec3 Camera::front() {
+    return front_;
+}
