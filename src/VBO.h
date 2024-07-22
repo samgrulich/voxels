@@ -22,14 +22,12 @@ struct VBO {
     VBO();
     ~VBO() {remove();}
 
-    // // (Re)write new vertices to the VBO
-    // void set(std::vector<GLfloat> vertices);
     // (Re)write new vertices to the VBO
     void set(std::vector<GLuint> vertices);
-    // // (Re)write new vertices to the VBO
-    // void set(std::vector<GLfloat> vertices);
     // (Re)write new vertices to the VBO
     void set(std::vector<float> vertices);
+    // (Re)write new vertices to the VBO
+    void set(float vertices[], int size);
     // Binds the VBO
     void bind();
     // Unbinds the VBO

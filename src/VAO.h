@@ -3,21 +3,40 @@
 #include <GL/glew.h>
 #include "VBO.h"
 
-struct VAO {
-    GLuint ID;
+struct Attribute {
+    int type;
+    GLuint numComponents;
+};
 
+/**
+ * @brief Represents a Vertex Array Object
+ * and makes less manual adding and enabling attributes
+ */
+struct VAO {
+private:
+    VBO* vbo_ = nullptr;
+    unsigned int stride_ = 0;
+    std::vector<Attribute> attributes_;
+public:
+    GLuint ID;
+public:
     VAO();
     ~VAO() {remove();}
 
-    /* Links a VBO attribute 
-     * (the datatype of the attributes are uints by default)
-     * @param vbo: vertex buffer, which contains the data
-     * @param layout: index of the vertex attribute to be modified
-     * @param numComponents: number of components
-     * @param stride: size of vertex (number of uints)
-     * @param offset: offset of the attrib from the start of vertex (number of uints)
+    /**
+     * @brief Set the Vbo object
      */
-    void linkAttrib(VBO& vbo, GLuint layout, GLuint numComponents, GLsizeiptr stride, unsigned int offset);
+    void setVbo(VBO *vbo); 
+    /**
+     * @brief Add an attribute to the VAO (!after all atributes are added you need to enable them!)
+     * @param type: type of the attribute 
+     * @param numComponents: number of components of the attribute
+     */
+    void addAttrib(int type, GLuint numComponents);
+    /**
+     * @brief Enable the attributes of the VAO
+     */
+    void enableAttribs();
     // Binds the VAO
     void bind();
     // Unbind the VAO 

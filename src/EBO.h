@@ -24,6 +24,8 @@ struct EBO {
 
     // (Re)write new vertices to the VBO
     void set(std::vector<GLuint> vertices);
+    // (Re)write new vertices to the VBO
+    void set(GLuint vertices[], int size);
     // Binds the VBO
     void bind();
     // Unbinds the VBO

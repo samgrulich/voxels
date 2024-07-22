@@ -33,3 +33,8 @@ void VBO::set(std::vector<GLuint> vertices) {
     bind();
     glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(vertices[0]), &vertices[0], GL_STATIC_DRAW);
 }
+
+void VBO::set(float vertices[], int size) {
+    bind();
+    glBufferData(GL_ARRAY_BUFFER, size*sizeof(vertices[0]), vertices, GL_STATIC_DRAW);
+}

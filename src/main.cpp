@@ -11,11 +11,10 @@
 
 #include "Camera.h"
 #include "Shader.h"
-#include "Block.h"
+#include "VAO.h"
+#include "VBO.h"
+#include "EBO.h"
 
-/* TODOS:
- *  remove chunks
- */
 
 static struct State {
     GLFWwindow* win;
@@ -42,6 +41,9 @@ int main(void) {
     /* Initialize the library */
     if (!glfwInit())
         return -1;
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
     glfwWindowHint(GLFW_RESIZABLE, false);
@@ -80,10 +82,6 @@ int main(void) {
     cam.position = {0.0f, 0.5f, -2.0f};
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
-    Blocks blocks = Blocks();
-    Block block = Block(glm::vec3(0.0f, 0.0f, 0.0f));
-    blocks.add(block);
-    blocks.upload();
 
     s_state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -95,8 +93,56 @@ int main(void) {
     if (s_state.drawLines)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // std::thread t1(startChunkGeneration, &world);
-    // std::thread t2(startChunkMeshing, &world);
+    // initialize opengl
+    float vertices[] = {
+         0.5f,  0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
+    };
+    unsigned int indices[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
+
+    VAO vao;
+    VBO vbo;
+    EBO ebo;
+    vao.bind();
+    vbo.set(vertices, sizeof(vertices)/sizeof(float));
+    ebo.set(indices, sizeof(indices)/sizeof(unsigned int));
+    vao.setVbo(&vbo);
+    vao.addAttrib(GL_FLOAT, 3);
+    vao.enableAttribs();
+    vbo.unbind();
+    vao.unbind();
+
+    // unsigned int VBO, VAO, EBO;
+    // glGenVertexArrays(1, &VAO);
+    // glGenBuffers(1, &VBO);
+    // glGenBuffers(1, &EBO);
+    // // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    // glBindVertexArray(VAO);
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    //
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(0);
+    //
+    // // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+    // glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    //
+    // // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+    // //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //
+    // // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+    // // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+    // glBindVertexArray(0); 
+
     auto start     = std::chrono::steady_clock::now();
     auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
@@ -127,10 +173,9 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        // manager.generateChunks();
-        // manager.meshChunks(5);
-        // manager.drawChunks(cam.position, cam.front(), basicShader);
-        blocks.draw(basicShader);
+        // glBindVertexArray(VAO);
+        vao.bind();
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         basicShader.refresh();
 
@@ -152,8 +197,6 @@ int main(void) {
     }
 
     s_state.shouldWindowClose = true;
-    // t1.join();
-    // t2.join();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
