@@ -11,16 +11,22 @@
 
 #include "Camera.h"
 #include "Shader.h"
-#include "VAO.h"
-#include "VBO.h"
-#include "EBO.h"
+#include "Shape.h"
+#include "Texture.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image/stb_image.h"
+// #include "VAO.h"
+// #include "VBO.h"
+// #include "EBO.h"
+// #include "VBL.h"
 
 
 static struct State {
     GLFWwindow* win;
     glm::ivec2 winSize = {800, 600};
     Camera* cam;
-    bool drawLines = true;
+    bool drawLines = false;
+    bool cullFaces = true;
     bool shouldWindowClose = false;
 } s_state;
 
@@ -76,6 +82,9 @@ int main(void) {
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(s_state.win, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
     ImGui_ImplOpenGL3_Init();
+    
+    // stbi setup
+    stbi_set_flip_vertically_on_load(true);
 
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
@@ -89,59 +98,18 @@ int main(void) {
     glCullFace(GL_FRONT);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    // glEnable(GL_CULL_FACE);
+    if (s_state.cullFaces)
+        glEnable(GL_CULL_FACE);
     if (s_state.drawLines)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    float vertices[] = {
-         0.5f,  0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f
-    };
-    unsigned int indices[] = {
-        0, 1, 3,
-        1, 2, 3
-    };
+    Shape rectangle = cube(1.0f);
+    
+    Texture texture("res/dev.jpg", GL_RGB);
+    basicShader.bind();
+    basicShader.set("u_texture", 0);
 
-    VAO vao;
-    VBO vbo;
-    EBO ebo;
-    vao.bind();
-    vbo.set(vertices, sizeof(vertices)/sizeof(float));
-    ebo.set(indices, sizeof(indices)/sizeof(unsigned int));
-    vao.setVbo(&vbo);
-    vao.addAttrib(GL_FLOAT, 3);
-    vao.enableAttribs();
-    vbo.unbind();
-    vao.unbind();
-
-    // unsigned int VBO, VAO, EBO;
-    // glGenVertexArrays(1, &VAO);
-    // glGenBuffers(1, &VBO);
-    // glGenBuffers(1, &EBO);
-    // // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    // glBindVertexArray(VAO);
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    //
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    // glEnableVertexAttribArray(0);
-    //
-    // // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    // glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    //
-    // // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    // //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    //
-    // // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    // glBindVertexArray(0); 
 
     auto start     = std::chrono::steady_clock::now();
     auto lastFrame = std::chrono::steady_clock::now();
@@ -169,13 +137,14 @@ int main(void) {
 
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        texture.bind(0);
+
         basicShader.bind();
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        // glBindVertexArray(VAO);
-        vao.bind();
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        rectangle.draw();
 
         basicShader.refresh();
 

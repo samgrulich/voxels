@@ -7,43 +7,29 @@
 Shape::Shape(std::vector<float> vertices, std::vector<unsigned int> indices)
     : vertices_(vertices), indices_(indices)
 {
-    // vao
-    GLCall(glGenVertexArrays(1, &VAO_));
-    GLCall(glBindVertexArray(VAO_));
-
-    // vb
-    GLCall(glGenBuffers(1, &VB_));
-    GLCall(glBindBuffer(GL_ARRAY_BUFFER, VB_));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, vertices.size()*Vertex::getSize(), &vertices[0], GL_STATIC_DRAW));
-
+    vbo_.set(vertices_);
+    
     layout_ = Vertex::getLayout();
     layout_.enableAttribs();
 
-    // ib
-    GLCall(glGenBuffers(1, &IB_));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
-    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size()*sizeof(unsigned int), &indices[0], GL_STATIC_DRAW));
+    ebo_.set(indices_);
 }
 
-Shape::~Shape() {
-    GLCall(glDeleteBuffers(1, &VAO_));
-    GLCall(glDeleteBuffers(1, &VB_));
-    GLCall(glDeleteBuffers(1, &IB_));
-}
+Shape::~Shape() { }
 
 void Shape::bind() {
-    GLCall(glBindVertexArray(VAO_));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB_));
+    vao_.bind();
+    // ebo_.bind();
 }
 
 void Shape::unbind() {
-    GLCall(glBindVertexArray(0));
-    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+    vbo_.unbind();
+    vao_.unbind();
 }
 
 void Shape::draw() {
     bind();
-    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL))
+    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL));
 }
 
 void Shape::drawInstanced(unsigned int count) {
@@ -171,29 +157,70 @@ Shape circle(float r) {
 Shape cube(float a) {
     float r = a / 2;
     std::vector<float> vertices = {
-        -r, -r, -r, 0.0, 0.0,
-        r, -r, -r, 1.0, 0.0,
-        r, r, -r, 1.0, 1.0,
-        -r, r, -r, 0.0, 1.0,
-        -r, -r, r, 0.0, 0.0,
-        r, -r, r, 1.0, 0.0,
-        r, r, r, 1.0, 1.0,
-        -r, r, r, 0.0, 1.0
+        -r, -r, -r, 0.0, 0.0,  // Front Face
+         r, -r, -r, 1.0, 0.0,  // Front Face
+         r,  r, -r, 1.0, 1.0,  // Front Face
+        -r,  r, -r, 0.0, 1.0,  // Front Face
+
+         r, -r,  r, 0.0, 0.0,  // Back Face
+        -r, -r,  r, 1.0, 0.0,  // Back Face
+        -r,  r,  r, 1.0, 1.0,  // Back Face
+         r,  r,  r, 0.0, 1.0,  // Back Face
+
+        -r, -r,  r, 0.0, 0.0,  // Left Face
+        -r, -r, -r, 1.0, 0.0,  // Left Face
+        -r,  r, -r, 1.0, 1.0,  // Left Face
+        -r,  r,  r, 0.0, 1.0,  // Left Face
+
+         r, -r, -r, 0.0, 0.0,  // Right Face
+         r, -r,  r, 1.0, 0.0,  // Right Face
+         r,  r,  r, 1.0, 1.0,  // Right Face
+         r,  r, -r, 0.0, 1.0,  // Right Face
+
+        -r,  r, -r, 0.0, 0.0,  // Top Face
+         r,  r, -r, 1.0, 0.0,  // Top Face
+         r,  r,  r, 1.0, 1.0,  // Top Face
+        -r,  r,  r, 0.0, 1.0,  // Top Face
+
+        -r, -r,  r, 0.0, 0.0,  // Bottom Face
+         r, -r,  r, 1.0, 0.0,  // Bottom Face
+         r, -r, -r, 1.0, 1.0,  // Bottom Face
+        -r, -r, -r, 0.0, 1.0   // Bottom Face
     };
-    std::vector<unsigned int>indices = {
-        0, 1, 2,
-        2, 3, 0,
-        1, 5, 6,
-        6, 2, 1,
-        7, 6, 5,
-        5, 4, 7,
-        4, 0, 3,
-        3, 7, 4,
-        4, 5, 1,
-        1, 0, 4,
-        3, 2, 6,
-        6, 7, 3
+
+    std::vector<unsigned int> indices = {
+        0, 1, 2, 2, 3, 0,  // Front Face
+        4, 5, 6, 6, 7, 4,  // Back Face
+        8, 9, 10, 10, 11, 8,  // Left Face
+        12, 13, 14, 14, 15, 12,  // Right Face
+        16, 17, 18, 18, 19, 16,  // Top Face
+        20, 21, 22, 22, 23, 20   // Bottom Face
     };
+
+    // std::vector<float> vertices = {
+    //     -r, -r, -r, 0.0, 0.0,
+    //     r, -r, -r, 1.0, 0.0,
+    //     r, r, -r, 1.0, 1.0,
+    //     -r, r, -r, 0.0, 1.0,
+    //     -r, -r, r, 0.0, 0.0,
+    //     r, -r, r, 1.0, 0.0,
+    //     r, r, r, 1.0, 1.0,
+    //     -r, r, r, 0.0, 1.0
+    // };
+    // std::vector<unsigned int>indices = {
+    //     0, 1, 2,
+    //     2, 3, 0,
+    //     1, 5, 6,
+    //     6, 2, 1,
+    //     7, 6, 5,
+    //     5, 4, 7,
+    //     4, 0, 3,
+    //     3, 7, 4,
+    //     4, 5, 1,
+    //     1, 0, 4,
+    //     3, 2, 6,
+    //     6, 7, 3
+    // };
 
     return Shape(vertices, indices);
 }

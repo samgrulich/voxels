@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(location=0) in vec4 pos;
-layout(location=1) in vec2 uv;
+layout(location=1) in vec2 uvs;
 
 uniform mat4 u_MVP;
 
@@ -14,7 +14,7 @@ void main() {
     // if (gl_InstanceID == 12) {
     //     size = u_size;
     // }
-    v_uvs = uv;
+    v_uvs = uvs;
     vec3 vertexPosition = pos.xyz;
 
     gl_Position = u_MVP * vec4(vertexPosition, 1.0);

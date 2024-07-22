@@ -12,7 +12,7 @@ struct VBO {
      * (note that the VBO needs to be deleted 
      *   by user by calling Delete())
      */
-    VBO(std::vector<GLuint> vertices);
+    VBO(std::vector<float> vertices);
     /*
      * Creates empty VBO
      *

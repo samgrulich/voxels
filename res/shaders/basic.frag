@@ -3,11 +3,13 @@
 in vec2 v_uvs;
 
 uniform vec3 u_color;
+uniform sampler2D u_texture;
+
 out vec4 out_color;
 
 void main() {
     vec3 color = vec3(0.3f, 0.72f, 1.2f); 
     color = u_color;
-    // color.xy = v_uvs.xy;
-    out_color = vec4(color, 1.0);
+    // out_color = texture(u_texture, v_uvs);
+    out_color = texture(u_texture, v_uvs);
 }
