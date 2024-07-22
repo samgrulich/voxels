@@ -1,15 +1,12 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-
-#include <glm/matrix.hpp>
-#include <GL/glew.h>
-
 #include "VAO.h"
 #include "VBO.h"
 #include "EBO.h"
 #include "GLCommon.h"
+
+#include <vector>
+#include <glm/glm.hpp>
 
 
 struct VBLElement {
@@ -23,14 +20,16 @@ struct VBLElement {
 
 struct VBL {
     std::vector<VBLElement> elements;
-    int stride;
+    int stride = 0;
+    int numAttribs = 0;
 
     VBL() 
-        : stride(0), elements(std::vector<VBLElement>()) {}
+        : elements(std::vector<VBLElement>()) {}
 
     void push(VBLElement elem) {
         elements.push_back(elem);
         stride += elem.count * GLSizeof(elem.type);
+        numAttribs += elem.count;
     }
 
     void pushf(unsigned int count) {
@@ -57,8 +56,12 @@ struct VBL {
     }
 };
 
+
 struct Vertex {
     static int getSize() {
+        return getLayout().numAttribs;
+    }
+    static int getStride() {
         return getLayout().stride;
     }
     static VBL getLayout() {
@@ -69,31 +72,28 @@ struct Vertex {
     }
 };
 
-class Shape {
-    private:
-        std::vector<float> vertices_;
-        std::vector<unsigned int> indices_;
-        VBL layout_;
-        VAO vao_;
-        VBO vbo_;
-        EBO ebo_;
-        unsigned int VAO_;
-        unsigned int VB_;
-        unsigned int IB_;
+struct Mesh {
+    std::vector<float> vertices_;
+    std::vector<unsigned int> indices_;
 
-    public:
-        Shape();
-        Shape(std::vector<float> vertices, std::vector<unsigned int> indices);
-        ~Shape();
+private:
+    VBL layout_; 
+    VAO vao_;
+    VBO vbo_;
+    EBO ebo_;
 
-        void bind();
-        void unbind();
+public:
+    Mesh();
+    ~Mesh();
 
-        void draw();
-        void drawInstanced(unsigned int count);
+    void bind();
+    void unbind();
+
+    void draw();
+    void drawInstanced(unsigned int count);
+
+public:
+    void addCube(glm::vec3 position);
+    
+    void upload();
 };
-
-Shape quad(float a);
-Shape rect(float w, float h);
-Shape circle(float r);
-Shape cube(float a);

@@ -10,8 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Camera.h"
+#include "Mesh.h"
 #include "Shader.h"
-#include "Shape.h"
 #include "Texture.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
@@ -104,7 +104,15 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    Shape rectangle = cube(1.0f);
+    Mesh mesh;
+    for (int z = 0; z < 10; z++) {
+        for (int y = -10; y < 0; y++) {
+            for (int x = 0; x < 10; x++) {
+                mesh.addCube({x, y, z});
+            }
+        }
+    }
+    mesh.upload();
     
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
@@ -144,7 +152,8 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        rectangle.draw();
+        // rectangle.draw();
+        mesh.draw();
 
         basicShader.refresh();
 
