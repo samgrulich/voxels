@@ -91,6 +91,7 @@ int main(void) {
     cam.position = {0.0f, 0.5f, -2.0f};
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
+    glm::vec3 lightDir = {0.5f, 1.0f, 0.7f};
 
     s_state.cam = &cam;
     glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -117,6 +118,7 @@ int main(void) {
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
     basicShader.set("u_texture", 0);
+    basicShader.set("u_lightDir", lightDir);
 
 
     auto start     = std::chrono::steady_clock::now();

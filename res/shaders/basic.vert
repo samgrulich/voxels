@@ -2,18 +2,24 @@
 
 layout(location=0) in vec4 pos;
 layout(location=1) in vec2 uvs;
+layout(location=2) in float id;
 
 uniform mat4 u_MVP;
 
 out vec2 v_uvs;
+out vec3 v_normal;
+
+vec3 normals[] = vec3[](
+    vec3(0.0, 0.0, 1.0),
+    vec3(0.0, 0.0, -1.0),
+    vec3(1.0, 0.0, 0.0),
+    vec3(-1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, -1.0, 0.0)
+);
 
 void main() {
-    // vec3 instanceoffset = u_offsets[gl_InstanceID];
-    // vec3 center = u_offset + instanceoffset * 0.5;
-    // float size = 0.5;
-    // if (gl_InstanceID == 12) {
-    //     size = u_size;
-    // }
+    v_normal = normals[uint(id)];
     v_uvs = uvs;
     vec3 vertexPosition = pos.xyz;
 

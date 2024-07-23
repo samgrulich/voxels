@@ -68,6 +68,7 @@ struct Vertex {
         VBL layout = VBL();
         layout.pushf(3);
         layout.pushf(2);
+        layout.pushf(1);
         return layout;
     }
 };

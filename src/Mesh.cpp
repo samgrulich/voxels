@@ -35,35 +35,35 @@ void Mesh::addCube(glm::vec3 position) {
     unsigned int io = vertices_.size() / Vertex::getSize();
         
     std::vector<float> vertices = {
-        -0.5f+x, -0.5f+y, -0.5f+z, 0.0, 0.0,  // F0.5font Face
-         0.5f+x, -0.5f+y, -0.5f+z, 1.0, 0.0,  // F0.5font Face
-         0.5f+x,  0.5f+y, -0.5f+z, 1.0, 1.0,  // F0.5font Face
-        -0.5f+x,  0.5f+y, -0.5f+z, 0.0, 1.0,  // F0.5font Face
+        -0.5f+x, -0.5f+y, -0.5f+z, 0.0, 0.0, 0,  // Front Face
+         0.5f+x, -0.5f+y, -0.5f+z, 1.0, 0.0, 0,  // Front Face
+         0.5f+x,  0.5f+y, -0.5f+z, 1.0, 1.0, 0,  // Front Face
+        -0.5f+x,  0.5f+y, -0.5f+z, 0.0, 1.0, 0,  // Front Face
 
-         0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0,  // Back Face
-        -0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0,  // Back Face
-        -0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0,  // Back Face
-         0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0,  // Back Face
+         0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0, 1,  // Back Face
+        -0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0, 1,  // Back Face
+        -0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0, 1,  // Back Face
+         0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0, 1,  // Back Face
 
-        -0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0,  // Left Face
-        -0.5f+x, -0.5f+y, -0.5f+z, 1.0, 0.0,  // Left Face
-        -0.5f+x,  0.5f+y, -0.5f+z, 1.0, 1.0,  // Left Face
-        -0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0,  // Left Face
+        -0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0, 2,  // Left Face
+        -0.5f+x, -0.5f+y, -0.5f+z, 1.0, 0.0, 2,  // Left Face
+        -0.5f+x,  0.5f+y, -0.5f+z, 1.0, 1.0, 2,  // Left Face
+        -0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0, 2,  // Left Face
 
-         0.5f+x, -0.5f+y, -0.5f+z, 0.0, 0.0,  // Right Face
-         0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0,  // Right Face
-         0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0,  // Right Face
-         0.5f+x,  0.5f+y, -0.5f+z, 0.0, 1.0,  // Right Face
+         0.5f+x, -0.5f+y, -0.5f+z, 0.0, 0.0, 3,  // Right Face
+         0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0, 3,  // Right Face
+         0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0, 3,  // Right Face
+         0.5f+x,  0.5f+y, -0.5f+z, 0.0, 1.0, 3,  // Right Face
 
-        -0.5f+x,  0.5f+y, -0.5f+z, 0.0, 0.0,  // Top Face
-         0.5f+x,  0.5f+y, -0.5f+z, 1.0, 0.0,  // Top Face
-         0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0,  // Top Face
-        -0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0,  // Top Face
+        -0.5f+x,  0.5f+y, -0.5f+z, 0.0, 0.0, 4,  // Top Face
+         0.5f+x,  0.5f+y, -0.5f+z, 1.0, 0.0, 4,  // Top Face
+         0.5f+x,  0.5f+y,  0.5f+z, 1.0, 1.0, 4,  // Top Face
+        -0.5f+x,  0.5f+y,  0.5f+z, 0.0, 1.0, 4,  // Top Face
 
-        -0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0,  // Bottom Face
-         0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0,  // Bottom Face
-         0.5f+x, -0.5f+y, -0.5f+z, 1.0, 1.0,  // Bottom Face
-        -0.5f+x, -0.5f+y, -0.5f+z, 0.0, 1.0   // Bottom Face
+        -0.5f+x, -0.5f+y,  0.5f+z, 0.0, 0.0, 5,  // Bottom Face
+         0.5f+x, -0.5f+y,  0.5f+z, 1.0, 0.0, 5,  // Bottom Face
+         0.5f+x, -0.5f+y, -0.5f+z, 1.0, 1.0, 5,  // Bottom Face
+        -0.5f+x, -0.5f+y, -0.5f+z, 0.0, 1.0, 5   // Bottom Face
     };
     
     std::vector<unsigned int> indices = {
