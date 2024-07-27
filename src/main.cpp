@@ -10,15 +10,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Camera.h"
-#include "Mesh.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Chunk.h"
+#include "WorldConstants.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
-// #include "VAO.h"
-// #include "VBO.h"
-// #include "EBO.h"
-// #include "VBL.h"
 
 
 static struct State {
@@ -105,15 +102,16 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    Mesh mesh;
-    for (int z = 0; z < 10; z++) {
-        for (int y = -10; y < 0; y++) {
-            for (int x = 0; x < 10; x++) {
-                mesh.addCube({x, y, z});
-            }
+    // Grid grid = newYFilledGrid(10, 10, 10, 2);
+    // Mesh mesh = grid.getMesh();
+    Chunk chunk = Chunk({0, 0, 0});
+    Block block = {1, true};
+    for (int z = 0; z < Consts::CHUNK_SIZE; z++) {
+        for (int x = 0; x < Consts::CHUNK_SIZE; x++) {
+            World::setBlock(x, 0, z, block);
         }
     }
-    mesh.upload();
+    chunk.remesh();
     
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
@@ -155,7 +153,8 @@ int main(void) {
         basicShader.set("u_MVP", cam.viewProjection);
 
         // rectangle.draw();
-        mesh.draw();
+        // mesh.draw();
+        chunk.draw();
 
         basicShader.refresh();
 

@@ -1,4 +1,4 @@
-namespace World {
+namespace Consts {
     const int VIEW_DISTANCE = 2; // radius of the view distance
     const int FULL_VIEW_DISTANCE = VIEW_DISTANCE*2+1; // diameter of the view distance
 
