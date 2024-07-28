@@ -9,6 +9,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 add_subdirectory(libs/GLFW)
 add_subdirectory(libs/GLEW/build/cmake/)
 add_subdirectory(libs/glm)
+add_subdirectory(libs/tracy)
 add_library(
     imgui 
     libs/imgui/imgui.cpp
@@ -29,7 +30,7 @@ add_library(
 #file(GLOB V_GLOB LIST_DIRECTORIES true "*")
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui TracyClient)
 
 # SET (CMAKE_CXX_FLAGS "-std=c++20 -pg -O0") # for profiling
 SET (CMAKE_CXX_FLAGS "-std=c++20 -g")

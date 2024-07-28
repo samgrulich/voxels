@@ -14,6 +14,8 @@
 #include "Texture.h"
 #include "Chunk.h"
 #include "WorldConstants.h"
+
+#include "tracy/Tracy.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
 
@@ -64,6 +66,7 @@ int main(void) {
     /* Make the window's context current */
     glfwMakeContextCurrent(s_state.win);
     glfwSwapInterval(1);
+    // glfwSwapInterval(0);
     if(glewInit() != GLEW_OK) {
         std::cerr << "Error: Couldn't initalize OpenGL." << std::endl;
         return 1;
@@ -85,7 +88,7 @@ int main(void) {
 
     // my init
     Camera cam(s_state.win, (float)s_state.winSize.x/s_state.winSize.y);
-    cam.position = {0.0f, 0.5f, -2.0f};
+    cam.position = {14.5f, 15.0f, -16.0f};
     ShaderProgram basicShader("res/shaders/basic.vert", "res/shaders/basic.frag");
     glm::vec4 clearColor = {0.025, 0.770, 1.000, 1.0};
     glm::vec3 lightDir = {0.5f, 1.0f, 0.7f};
@@ -102,16 +105,36 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    // Grid grid = newYFilledGrid(10, 10, 10, 2);
-    // Mesh mesh = grid.getMesh();
-    Chunk chunk = Chunk({0, 0, 0});
-    Block block = {1, true};
-    for (int z = 0; z < Consts::CHUNK_SIZE; z++) {
-        for (int x = 0; x < Consts::CHUNK_SIZE; x++) {
-            World::setBlock(x, 0, z, block);
+    int chunkSize = 8;
+    std::vector<Chunk*> chunks;
+    auto terrainStart     = std::chrono::steady_clock::now();
+    {
+        ZoneScopedN("Terrain Generation");
+        Block block = {1, true};
+        for (int z1 = 0; z1 < chunkSize; z1++) {
+            for (int x1 = 0; x1 < chunkSize; x1++) {
+                for (int z = 0; z < Consts::CHUNK_SIZE; z++) {
+                    for (int x = 0; x < Consts::CHUNK_SIZE; x++) {
+                        World::setBlock(x+x1*Consts::CHUNK_SIZE, 0, z+z1*Consts::CHUNK_SIZE, block);
+                    }
+                }
+            }
         }
     }
-    chunk.remesh();
+    auto terrainEnd = std::chrono::steady_clock::now();
+    {
+        ZoneScopedN("Mesh Generation");
+        for (int z1 = 0; z1 < chunkSize; z1++) {
+            for (int x1 = 0; x1 < chunkSize; x1++) {
+                Chunk* chunk = new Chunk({x1*Consts::CHUNK_SIZE, 0, z1*Consts::CHUNK_SIZE});
+                chunk->remesh();
+                chunks.push_back(chunk);
+            }
+        }
+    }
+    auto meshEnd = std::chrono::steady_clock::now();
+    std::cout << "Terrain generation took " << std::chrono::duration_cast<std::chrono::milliseconds>(terrainEnd - terrainStart).count() << "ms" << std::endl;
+    std::cout << "Mesh generation took " << std::chrono::duration_cast<std::chrono::milliseconds>(meshEnd - terrainEnd).count() << "ms" << std::endl;
     
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
@@ -123,6 +146,8 @@ int main(void) {
     auto lastFrame = std::chrono::steady_clock::now();
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(s_state.win)) {
+        FrameMark;
+        ZoneScopedN("Main Loop");
         auto thisFrame  = std::chrono::steady_clock::now();
         float frameTime = std::chrono::duration_cast<std::chrono::microseconds>(thisFrame - lastFrame).count() * 0.001;
         float deltaTime = frameTime * 0.001;
@@ -154,7 +179,9 @@ int main(void) {
 
         // rectangle.draw();
         // mesh.draw();
-        chunk.draw();
+        for (Chunk* chunk : chunks) {
+            chunk->draw();
+        }
 
         basicShader.refresh();
 

@@ -2,30 +2,36 @@
 
 #include <GL/glew.h>
 
+#include "tracy/Tracy.hpp"
 #include "WorldConstants.h"
 
 
 Block World::getBlock(int x, int y, int z) {
+    ZoneScoped;
     return blocks[glm::vec3(x, y, z)];
 }
 
 Block World::getBlock(glm::vec3 pos) {
+    ZoneScoped;
     return blocks[pos];
 }
 
 Block World::setBlock(int x, int y, int z, Block block) {
+    ZoneScoped;
     Block oldBlock = blocks[glm::vec3(x, y, z)];
     blocks[glm::vec3(x, y, z)] = block;
     return oldBlock;
 }
 
 Block World::setBlock(glm::vec3 pos, Block block) {
+    ZoneScoped;
     Block oldBlock = blocks[pos];
     blocks[pos] = block;
     return oldBlock;
 }
 
 Block World::removeBlock(int x, int y, int z) {
+    ZoneScoped;
     Block oldBlock = blocks[glm::vec3(x, y, z)];
     blocks.erase(glm::vec3(x, y, z));
     return oldBlock;
@@ -72,10 +78,15 @@ void Chunk::draw() {
 }
 
 void Chunk::remesh() {
+    ZoneScopedN("Chunk::remesh");
     for (int z1 = 0; z1 < Consts::CHUNK_SIZE; z1++) {
         for (int y1 = 0; y1 < Consts::CHUNK_SIZE; y1++) {
             for (int x1 = 0; x1 < Consts::CHUNK_SIZE; x1++) {
-                Block b = World::getBlock(position_.x + x1, position_.y + y1, position_.z + z1);
+                ZoneScopedN("Chunk::remesh::block");
+                int bx = position_.x + x1;
+                int by = position_.y + y1;
+                int bz = position_.z + z1;
+                Block b = World::getBlock(bx, by, bz);
                 uint8_t opaqueBitmask = 0;
 
                 if (b.id == 0) {
@@ -101,22 +112,22 @@ void Chunk::remesh() {
                 }
 
                 if (opaqueBitmask & ADJACENT_BITMASK_POS_X) {
-                    addFaceXPlane(x1+1, y1, z1, x1+1, y1+1, z1+1, false);
+                    addFaceXPlane(bx+1, by, bz, bx+1, by+1, bz+1, false);
                 }
                 if (opaqueBitmask & ADJACENT_BITMASK_NEG_X) {
-                    addFaceXPlane(x1, y1, z1, x1, y1+1, z1+1, true);
+                    addFaceXPlane(bx, by, bz, bx, by+1, bz+1, true);
                 }
                 if (opaqueBitmask & ADJACENT_BITMASK_POS_Y) {
-                    addFaceYPlane(x1, y1+1, z1, x1+1, y1+1, z1+1, true);
+                    addFaceYPlane(bx, by+1, bz, bx+1, by+1, bz+1, true);
                 }
                 if (opaqueBitmask & ADJACENT_BITMASK_NEG_Y) {
-                    addFaceYPlane(x1, y1, z1, x1+1, y1, z1+1, false);
+                    addFaceYPlane(bx, by, bz, bx+1, by, bz+1, false);
                 }
                 if (opaqueBitmask & ADJACENT_BITMASK_POS_Z) {
-                    addFaceZPlane(x1, y1, z1+1, x1+1, y1+1, z1+1, true);
+                    addFaceZPlane(bx, by, bz+1, bx+1, by+1, bz+1, true);
                 }
                 if (opaqueBitmask & ADJACENT_BITMASK_NEG_Z) {
-                    addFaceZPlane(x1, y1, z1, x1+1, y1+1, z1, false);
+                    addFaceZPlane(bx, by, bz, bx+1, by+1, bz, false);
                 }
             }
         }
