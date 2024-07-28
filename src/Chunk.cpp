@@ -1,40 +1,57 @@
 #include "Chunk.h"
 
 #include <GL/glew.h>
+#include <iostream>
 
+#include "GLCommon.h"
 #include "tracy/Tracy.hpp"
 #include "WorldConstants.h"
 
 
+std::unordered_map<glm::ivec3, Chunk*> chunks;
+
 Block World::getBlock(int x, int y, int z) {
     ZoneScoped;
-    return blocks[glm::vec3(x, y, z)];
+    int cx = x / Consts::CHUNK_SIZE;
+    int cy = y / Consts::CHUNK_SIZE;
+    int cz = z / Consts::CHUNK_SIZE;
+
+    if (x < 0 || y < 0 || z < 0) {
+        return {0, false};
+    }
+
+    Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
+    if (chunk == nullptr) {
+        return {0, false};
+    }
+    
+    int lx = x % Consts::CHUNK_SIZE;
+    int ly = y % Consts::CHUNK_SIZE;
+    int lz = z % Consts::CHUNK_SIZE;
+    return chunk->getBlock(lx, ly, lz, x, y, z);
 }
 
-Block World::getBlock(glm::vec3 pos) {
+void World::setBlock(int x, int y, int z, Block block) {
     ZoneScoped;
-    return blocks[pos];
+    int cx = x / Consts::CHUNK_SIZE;
+    int cy = y / Consts::CHUNK_SIZE;
+    int cz = z / Consts::CHUNK_SIZE;
+
+    Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
+    if (chunk == nullptr) {
+        chunk = new Chunk({cx*Consts::CHUNK_SIZE, cy*Consts::CHUNK_SIZE, cz*Consts::CHUNK_SIZE});
+        chunks[glm::ivec3(cx, cy, cz)] = chunk;
+    }
+    
+    int lx = x % Consts::CHUNK_SIZE;
+    int ly = y % Consts::CHUNK_SIZE;
+    int lz = z % Consts::CHUNK_SIZE;
+    return chunk->setBlock(lx, ly, lz, block);
 }
 
-Block World::setBlock(int x, int y, int z, Block block) {
+void World::removeBlock(int x, int y, int z) {
     ZoneScoped;
-    Block oldBlock = blocks[glm::vec3(x, y, z)];
-    blocks[glm::vec3(x, y, z)] = block;
-    return oldBlock;
-}
-
-Block World::setBlock(glm::vec3 pos, Block block) {
-    ZoneScoped;
-    Block oldBlock = blocks[pos];
-    blocks[pos] = block;
-    return oldBlock;
-}
-
-Block World::removeBlock(int x, int y, int z) {
-    ZoneScoped;
-    Block oldBlock = blocks[glm::vec3(x, y, z)];
-    blocks.erase(glm::vec3(x, y, z));
-    return oldBlock;
+    setBlock(x, y, z, {0, false});
 }
 
 Chunk::Chunk() {
@@ -54,6 +71,7 @@ Chunk::Chunk() {
     glEnableVertexAttribArray(2);
 
     position_ = {0, 0, 0};
+    blocks_ = new Block[Consts::CHUNK_SIZE_POW3];
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
 }
@@ -68,13 +86,9 @@ Chunk::~Chunk() {
     glDeleteVertexArrays(1, &vao_);
 }
 
-void Chunk::setPosition(glm::ivec3 position) {
-    position_ = position;
-}
-
 void Chunk::draw() {
-    glBindVertexArray(vao_);
-    glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL);
+    GLCall(glBindVertexArray(vao_));
+    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL));
 }
 
 void Chunk::remesh() {
@@ -86,19 +100,20 @@ void Chunk::remesh() {
                 int bx = position_.x + x1;
                 int by = position_.y + y1;
                 int bz = position_.z + z1;
-                Block b = World::getBlock(bx, by, bz);
+                // Block b = World::getBlock(bx, by, bz);
+                Block b = getBlock(x1, y1, z1, bx, by, bz);
                 uint8_t opaqueBitmask = 0;
 
                 if (b.id == 0) {
                     continue;
                 }
 
-                const Block bpx = World::getBlock(position_.x + x1 + 1, position_.y + y1, position_.z + z1);
-                const Block bnx = World::getBlock(position_.x + x1 - 1, position_.y + y1, position_.z + z1);
-                const Block bpy = World::getBlock(position_.x + x1, position_.y + y1 + 1, position_.z + z1);
-                const Block bny = World::getBlock(position_.x + x1, position_.y + y1 - 1, position_.z + z1);
-                const Block bpz = World::getBlock(position_.x + x1, position_.y + y1, position_.z + z1 + 1);
-                const Block bnz = World::getBlock(position_.x + x1, position_.y + y1, position_.z + z1 - 1);
+                const Block bpx = getBlock(x1+1, y1, z1, bx+1, by, bz);
+                const Block bnx = getBlock(x1-1, y1, z1, bx-1, by, bz);
+                const Block bpy = getBlock(x1, y1+1, z1, bx, by+1, bz);
+                const Block bny = getBlock(x1, y1-1, z1, bx, by-1, bz);
+                const Block bpz = getBlock(x1, y1, z1+1, bx, by, bz+1);
+                const Block bnz = getBlock(x1, y1, z1-1, bx, by, bz-1);
                 
                 opaqueBitmask |= (!bpx.opaque && b.opaque) ? ADJACENT_BITMASK_POS_X : 0;
                 opaqueBitmask |= (!bnx.opaque && b.opaque) ? ADJACENT_BITMASK_NEG_X : 0;
@@ -134,6 +149,28 @@ void Chunk::remesh() {
     }
 
     uploadMesh();
+}
+
+void Chunk::setPosition(glm::ivec3 position) {
+    position_ = position;
+}
+
+const Block Chunk::getBlock(int lx, int ly, int lz, int wx, int wy, int wz) const {
+    ZoneScoped;
+    if (lx < 0 || ly < 0 || lz < 0 || lx >= Consts::CHUNK_SIZE || ly >= Consts::CHUNK_SIZE || lz >= Consts::CHUNK_SIZE) {
+        return World::getBlock(wx, wy, wz);
+    }
+
+    return blocks_[getBlockIndex(lx, ly, lz)];
+}
+
+void Chunk::setBlock(int lx, int ly, int lz, Block block) {
+    ZoneScoped;
+    blocks_[getBlockIndex(lx, ly, lz)] = block;
+}
+
+bool Chunk::isNull() const {
+    return blocks_ == nullptr;
 }
 
 void Chunk::addFaceXPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted) {
@@ -215,4 +252,7 @@ void Chunk::uploadMesh() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size()*sizeof(unsigned int), &indices_[0], GL_STATIC_DRAW);
 }
 
+int Chunk::getBlockIndex(int lx, int ly, int lz) const {
+    return lx + ly*Consts::CHUNK_SIZE + lz*Consts::CHUNK_SIZE_POW2;
+}
 

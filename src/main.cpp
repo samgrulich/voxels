@@ -19,6 +19,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
 
+extern std::unordered_map<glm::ivec3, Chunk*> chunks;
 
 static struct State {
     GLFWwindow* win;
@@ -106,7 +107,6 @@ int main(void) {
 
     // initialize opengl
     int chunkSize = 8;
-    std::vector<Chunk*> chunks;
     auto terrainStart     = std::chrono::steady_clock::now();
     {
         ZoneScopedN("Terrain Generation");
@@ -124,12 +124,9 @@ int main(void) {
     auto terrainEnd = std::chrono::steady_clock::now();
     {
         ZoneScopedN("Mesh Generation");
-        for (int z1 = 0; z1 < chunkSize; z1++) {
-            for (int x1 = 0; x1 < chunkSize; x1++) {
-                Chunk* chunk = new Chunk({x1*Consts::CHUNK_SIZE, 0, z1*Consts::CHUNK_SIZE});
+        for (auto& [_, chunk] : chunks) {
+            if (chunk != nullptr)
                 chunk->remesh();
-                chunks.push_back(chunk);
-            }
         }
     }
     auto meshEnd = std::chrono::steady_clock::now();
@@ -179,8 +176,12 @@ int main(void) {
 
         // rectangle.draw();
         // mesh.draw();
-        for (Chunk* chunk : chunks) {
-            chunk->draw();
+        {
+            ZoneScopedN("Chunk Drawing");
+            for (auto& [_, chunk] : chunks) {
+                if (chunk != nullptr)
+                    chunk->draw();
+            }
         }
 
         basicShader.refresh();
