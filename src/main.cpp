@@ -1,5 +1,5 @@
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -111,13 +111,11 @@ int main(void) {
     {
         ZoneScopedN("Terrain Generation");
         Block block = {1, true};
-        for (int z1 = 0; z1 < chunkSize; z1++) {
-            for (int x1 = 0; x1 < chunkSize; x1++) {
-                for (int z = 0; z < Consts::CHUNK_SIZE; z++) {
-                    for (int x = 0; x < Consts::CHUNK_SIZE; x++) {
-                        World::setBlock(x+x1*Consts::CHUNK_SIZE, 0, z+z1*Consts::CHUNK_SIZE, block);
-                    }
-                }
+        for (int z1 = -1; z1 < chunkSize; z1++) {
+            for (int x1 = -1; x1 < chunkSize; x1++) {
+                Chunk* chunk = new Chunk({x1*Consts::CHUNK_SIZE, 0, z1*Consts::CHUNK_SIZE});
+                chunk->generateChunk();
+                chunks[{x1, 0, z1}] = chunk;
             }
         }
     }
@@ -130,8 +128,8 @@ int main(void) {
         }
     }
     auto meshEnd = std::chrono::steady_clock::now();
-    std::cout << "Terrain generation took " << std::chrono::duration_cast<std::chrono::milliseconds>(terrainEnd - terrainStart).count() << "ms" << std::endl;
-    std::cout << "Mesh generation took " << std::chrono::duration_cast<std::chrono::milliseconds>(meshEnd - terrainEnd).count() << "ms" << std::endl;
+    printf("Terrain generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(terrainEnd - terrainStart).count());
+    printf("Mesh    generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(meshEnd - terrainEnd).count());
     
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
@@ -174,8 +172,6 @@ int main(void) {
         basicShader.set("u_color", 1.0f, 1.0f, 0.0f);
         basicShader.set("u_MVP", cam.viewProjection);
 
-        // rectangle.draw();
-        // mesh.draw();
         {
             ZoneScopedN("Chunk Drawing");
             for (auto& [_, chunk] : chunks) {

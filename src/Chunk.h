@@ -10,6 +10,10 @@ struct Block {
     bool opaque;
 };
 
+namespace Blocks {
+    static const Block AIR = {0, false};
+    static const Block STONE = {1, true};
+}
 
 class World {
 public:
@@ -77,12 +81,13 @@ public:
      * @param block Block to set
      */
     void setBlock(int lx, int ly, int lz, Block block);
-    bool isNull() const;
+    void generateChunk();
 private:
     void addFaceXPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted);
     void addFaceYPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted);
     void addFaceZPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted);
     void uploadMesh();
-    int getBlockIndex(int lx, int ly, int lz) const;
+    inline int getBlockIndex(int lx, int ly, int lz) const;
 };
 
+Block generateBlock(int x, int y, int z);

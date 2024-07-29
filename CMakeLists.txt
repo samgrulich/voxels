@@ -5,6 +5,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h" "src/*.hpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # set(BUILD_SHARED_LIBS OFF)
+# SET (TRACY_ENABLE OFF)
 
 add_subdirectory(libs/GLFW)
 add_subdirectory(libs/GLEW/build/cmake/)
@@ -32,8 +33,8 @@ add_library(
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui TracyClient)
 
-# SET (CMAKE_CXX_FLAGS "-std=c++20 -pg -O0") # for profiling
-SET (CMAKE_CXX_FLAGS "-std=c++20 -g")
+SET (CMAKE_CXX_FLAGS "-std=c++20 -pg -O0") # for profiling
+# SET (CMAKE_CXX_FLAGS "-std=c++20 -g -O2")
 
 
 # add_subdirectory(src) # add directory with another CMakeLists

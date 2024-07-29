@@ -1,7 +1,7 @@
 #include "Chunk.h"
 
 #include <GL/glew.h>
-#include <iostream>
+#include <cmath>
 
 #include "GLCommon.h"
 #include "tracy/Tracy.hpp"
@@ -12,30 +12,26 @@ std::unordered_map<glm::ivec3, Chunk*> chunks;
 
 Block World::getBlock(int x, int y, int z) {
     ZoneScoped;
-    int cx = x / Consts::CHUNK_SIZE;
-    int cy = y / Consts::CHUNK_SIZE;
-    int cz = z / Consts::CHUNK_SIZE;
+    int cx = floorf((float)x / Consts::CHUNK_SIZE);
+    int cy = floorf((float)y / Consts::CHUNK_SIZE);
+    int cz = floorf((float)z / Consts::CHUNK_SIZE);
 
-    if (x < 0 || y < 0 || z < 0) {
-        return {0, false};
-    }
-
-    Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
-    if (chunk == nullptr) {
+    auto chunk = chunks.find(glm::ivec3(cx, cy, cz));
+    if (chunk == chunks.end()) {
         return {0, false};
     }
     
-    int lx = x % Consts::CHUNK_SIZE;
-    int ly = y % Consts::CHUNK_SIZE;
-    int lz = z % Consts::CHUNK_SIZE;
-    return chunk->getBlock(lx, ly, lz, x, y, z);
+    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
+    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
+    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
+    return chunk->second->getBlock(lx, ly, lz, x, y, z);
 }
 
 void World::setBlock(int x, int y, int z, Block block) {
     ZoneScoped;
-    int cx = x / Consts::CHUNK_SIZE;
-    int cy = y / Consts::CHUNK_SIZE;
-    int cz = z / Consts::CHUNK_SIZE;
+    int cx = floorf((float)x / Consts::CHUNK_SIZE);
+    int cy = floorf((float)y / Consts::CHUNK_SIZE);
+    int cz = floorf((float)z / Consts::CHUNK_SIZE);
 
     Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
     if (chunk == nullptr) {
@@ -43,9 +39,9 @@ void World::setBlock(int x, int y, int z, Block block) {
         chunks[glm::ivec3(cx, cy, cz)] = chunk;
     }
     
-    int lx = x % Consts::CHUNK_SIZE;
-    int ly = y % Consts::CHUNK_SIZE;
-    int lz = z % Consts::CHUNK_SIZE;
+    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
+    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
+    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
     return chunk->setBlock(lx, ly, lz, block);
 }
 
@@ -55,6 +51,7 @@ void World::removeBlock(int x, int y, int z) {
 }
 
 Chunk::Chunk() {
+    ZoneScoped;
     glGenVertexArrays(1, &vao_);
     glGenBuffers(1, &vbo_);
     glGenBuffers(1, &ibo_);
@@ -71,7 +68,7 @@ Chunk::Chunk() {
     glEnableVertexAttribArray(2);
 
     position_ = {0, 0, 0};
-    blocks_ = new Block[Consts::CHUNK_SIZE_POW3];
+    blocks_ = new Block[Consts::CHUNK_SIZE_POW3]{};
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_);
 }
@@ -96,13 +93,11 @@ void Chunk::remesh() {
     for (int z1 = 0; z1 < Consts::CHUNK_SIZE; z1++) {
         for (int y1 = 0; y1 < Consts::CHUNK_SIZE; y1++) {
             for (int x1 = 0; x1 < Consts::CHUNK_SIZE; x1++) {
-                ZoneScopedN("Chunk::remesh::block");
                 int bx = position_.x + x1;
                 int by = position_.y + y1;
                 int bz = position_.z + z1;
-                // Block b = World::getBlock(bx, by, bz);
-                Block b = getBlock(x1, y1, z1, bx, by, bz);
                 uint8_t opaqueBitmask = 0;
+                Block b = getBlock(x1, y1, z1, bx, by, bz);
 
                 if (b.id == 0) {
                     continue;
@@ -169,8 +164,18 @@ void Chunk::setBlock(int lx, int ly, int lz, Block block) {
     blocks_[getBlockIndex(lx, ly, lz)] = block;
 }
 
-bool Chunk::isNull() const {
-    return blocks_ == nullptr;
+void Chunk::generateChunk() {
+    ZoneScopedN("Chunk::generateChunk");
+    for (int lz = 0; lz < Consts::CHUNK_SIZE; lz++) {
+        for (int ly = 0; ly < Consts::CHUNK_SIZE; ly++) {
+            for (int lx = 0; lx < Consts::CHUNK_SIZE; lx++) {
+                int x = position_.x + lx;
+                int y = position_.y + ly;
+                int z = position_.z + lz;
+                setBlock(lx, ly, lz, generateBlock(x, y, z));
+            }
+        }
+    }
 }
 
 void Chunk::addFaceXPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted) {
@@ -252,7 +257,13 @@ void Chunk::uploadMesh() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_.size()*sizeof(unsigned int), &indices_[0], GL_STATIC_DRAW);
 }
 
-int Chunk::getBlockIndex(int lx, int ly, int lz) const {
+inline int Chunk::getBlockIndex(int lx, int ly, int lz) const {
     return lx + ly*Consts::CHUNK_SIZE + lz*Consts::CHUNK_SIZE_POW2;
 }
 
+inline Block generateBlock(int x, int y, int z) {
+    if (y > 8)
+        return Blocks::AIR;
+    
+    return Blocks::STONE;
+}
