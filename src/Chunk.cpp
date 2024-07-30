@@ -54,6 +54,8 @@ void Chunk::draw() {
 
 void Chunk::remesh() {
     ZoneScopedN("Chunk::remesh");
+    vertices_.clear();
+    indices_.clear();
     for (int z1 = 0; z1 < Consts::CHUNK_SIZE; z1++) {
         for (int y1 = 0; y1 < Consts::CHUNK_SIZE; y1++) {
             for (int x1 = 0; x1 < Consts::CHUNK_SIZE; x1++) {
@@ -292,9 +294,9 @@ void World::setBlock(int x, int y, int z, Block block) {
         std::lock_guard<std::mutex> lock2(remeshMutex_);
         {
             std::lock_guard<std::mutex> lock1(loadMutex_);
-            for (int z = -radius+1; z < radius; z++) {
-                for (int y = -radius+1; y < radius; y++) {
-                    for (int x = -radius+1; x < radius; x++) {
+            for (int z = -radius; z <= radius; z++) {
+                for (int y = -radius; y <= radius; y++) {
+                    for (int x = -radius; x <= radius; x++) {
                         glm::ivec3 localPos = {x, y, z};
                         glm::ivec3 globalPos = chunkCenter + localPos;
                         // leave out the loaded chunks
@@ -306,7 +308,7 @@ void World::setBlock(int x, int y, int z, Block block) {
                         chunks[globalPos] = chunk;
                         chunksToLoad_.push(chunk);
                         // flag neighbors to remesh
-                        flagNeighbors(globalPos, delta);
+                        flagNeighbors(globalPos, -delta);
                     }
                 }
             }
@@ -315,13 +317,21 @@ void World::setBlock(int x, int y, int z, Block block) {
         // unload Chunks
         // loop over all chunks and check if they are within the radius
         std::lock_guard<std::mutex> lock3(chunksMutex);
+        std::queue<glm::ivec3> toDelete;
         for (auto& [chunkPos, chunk] : chunks) {
             if (std::abs(chunkPos.x - chunkCenter.x) > radius || std::abs(chunkPos.y - chunkCenter.y) > radius || std::abs(chunkPos.z - chunkCenter.z) > radius) {
-                delete chunk;
-                chunks.erase(chunkPos);
                 // flag neighbors to remesh
-                flagNeighbors(chunkPos, -delta);
+                flagNeighbors(chunkPos, delta);
+                toDelete.push(chunkPos);
             }
+        }
+
+        while(!toDelete.empty()) {
+            glm::ivec3 chunkPos = toDelete.front();
+            toDelete.pop();
+            Chunk* chunk = chunks[chunkPos];
+            chunks.erase(chunkPos);
+            delete chunk; 
         }
 
     loaded_ = true;
@@ -329,6 +339,7 @@ void World::setBlock(int x, int y, int z, Block block) {
     radius_ = radius;
 }
 
+// todo: check if flagging is properly done
 void World::flagNeighbors(glm::ivec3 chunkPos, glm::ivec3 delta) {
     if (delta.x != 0) {
         if (delta.x > 0) {
@@ -346,9 +357,9 @@ void World::flagNeighbors(glm::ivec3 chunkPos, glm::ivec3 delta) {
     }
     if (delta.z != 0) {
         if (delta.z > 0) {
-            flagChunk({chunkPos.x, chunkPos.y, chunkPos.z-1});
-        } else {
             flagChunk({chunkPos.x, chunkPos.y, chunkPos.z+1});
+        } else {
+            flagChunk({chunkPos.x, chunkPos.y, chunkPos.z-1});
         }
     }
 }
@@ -394,7 +405,7 @@ void World::remeshChunks() {
 
 
 inline Block generateBlock(int x, int y, int z) {
-    if (y > 8)
+    if (y > 8 + 5 * sin(0.1*x) + 5 * sin(0.1*z))
         return Blocks::AIR;
     
     return Blocks::STONE;

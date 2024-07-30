@@ -7,7 +7,9 @@ project(voxels
 )
 
 # set(BUILD_SHARED_LIBS OFF)
-# SET (TRACY_ENABLE OFF)
+set(TRACY_ENABLE OFF)
+set(CMAKE_BUILD_TYPE Release)
+
 
 include(CTest)
 add_subdirectory(libs/GLFW)
@@ -39,7 +41,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_library(cxx_setup INTERFACE) 
-target_compile_options(cxx_setup  INTERFACE -Wall -Wpedantic -Wextra)
+target_compile_options(cxx_setup  INTERFACE -Wpedantic -Wextra -O2)
 target_compile_features(cxx_setup INTERFACE cxx_std_20)
 target_include_directories(cxx_setup INTERFACE "${PROJECT_SOURCE_DIR}/include/")
 target_include_directories(cxx_setup INTERFACE "${PROJECT_SOURCE_DIR}/src/")

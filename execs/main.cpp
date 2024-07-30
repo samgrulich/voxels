@@ -106,7 +106,7 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    int chunkSize = 2;
+    int chunkSize = 8;
     World world(chunkSize);
     world.loadArea(cam.position, chunkSize);
     world.loadChunks();
