@@ -1,5 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <mutex>
+#include <queue>
 #include <unordered_map>
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/hash.hpp"
@@ -15,31 +17,6 @@ namespace Blocks {
     static const Block STONE = {1, true};
 }
 
-class World {
-public:
-    World() {}
-
-    /**
-     * @brief Queries for chunk at position, if not found, creates a new one
-     * @param x global position x
-     * @param y global position y
-     * @param z global position z
-     * @return Block
-     */
-    static Block getBlock(int x, int y, int z);
-    /**
-     * @brief Sets the block at position, if not found, creates a new one
-     * @param x global position x
-     * @param y global position y
-     * @param z global position z
-     * @param block Block to set
-     * @return Block
-     */
-    static void setBlock(int x, int y, int z, Block block);
-    static void removeBlock(int x, int y, int z);
-    static glm::ivec3 getChunkPosition(glm::vec3 pos);
-    static glm::ivec3 getBlockPosition(glm::vec3 pos);
-};
 
 class Chunk {
     unsigned int vao_, vbo_, ibo_;
@@ -54,6 +31,8 @@ class Chunk {
     static const uint8_t ADJACENT_BITMASK_NEG_Y = 0b00001000;
     static const uint8_t ADJACENT_BITMASK_POS_Z = 0b00010000;
     static const uint8_t ADJACENT_BITMASK_NEG_Z = 0b00100000;
+public:
+    bool dirty = true;
 public:
     Chunk();
     Chunk(glm::ivec3 position);
@@ -82,6 +61,7 @@ public:
      */
     void setBlock(int lx, int ly, int lz, Block block);
     void generateChunk();
+    glm::ivec3 getChunkPos() const;
 private:
     void addFaceXPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted);
     void addFaceYPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted);
@@ -89,5 +69,49 @@ private:
     void uploadMesh();
     inline int getBlockIndex(int lx, int ly, int lz) const;
 };
+
+
+class World {
+    glm::ivec3 center_;
+    int radius_;
+    bool loaded_ = false;
+    
+    std::mutex loadMutex_;
+    std::queue<Chunk*> chunksToLoad_;
+    std::queue<Chunk*> chunksToMesh_;
+    std::mutex remeshMutex_;
+    std::queue<Chunk*> chunksToRemesh_;
+
+public:
+    World(int radius) 
+     : radius_(radius) {}
+
+    /**
+     * @brief Queries for chunk at position, if not found, creates a new one
+     * @param x global position x
+     * @param y global position y
+     * @param z global position z
+     * @return Block
+     */
+    static Block getBlock(int x, int y, int z);
+    /**
+     * @brief Sets the block at position, if not found, creates a new one
+     * @param x global position x
+     * @param y global position y
+     * @param z global position z
+     * @param block Block to set
+     * @return Block
+     */
+    static void setBlock(int x, int y, int z, Block block);
+    static void removeBlock(int x, int y, int z);
+    static void drawChunks();
+public:
+    void loadArea(glm::ivec3 center, int radius);
+    void loadChunks();
+    void remeshChunks();
+    void flagNeighbors(glm::ivec3 chunkPos, glm::ivec3 delta);
+    void flagChunk(glm::ivec3 chunkPos);
+};
+
 
 Block generateBlock(int x, int y, int z);

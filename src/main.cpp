@@ -106,30 +106,34 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    int chunkSize = 8;
-    auto terrainStart     = std::chrono::steady_clock::now();
-    {
-        ZoneScopedN("Terrain Generation");
-        Block block = {1, true};
-        for (int z1 = -1; z1 < chunkSize; z1++) {
-            for (int x1 = -1; x1 < chunkSize; x1++) {
-                Chunk* chunk = new Chunk({x1*Consts::CHUNK_SIZE, 0, z1*Consts::CHUNK_SIZE});
-                chunk->generateChunk();
-                chunks[{x1, 0, z1}] = chunk;
-            }
-        }
-    }
-    auto terrainEnd = std::chrono::steady_clock::now();
-    {
-        ZoneScopedN("Mesh Generation");
-        for (auto& [_, chunk] : chunks) {
-            if (chunk != nullptr)
-                chunk->remesh();
-        }
-    }
-    auto meshEnd = std::chrono::steady_clock::now();
-    printf("Terrain generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(terrainEnd - terrainStart).count());
-    printf("Mesh    generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(meshEnd - terrainEnd).count());
+    int chunkSize = 2;
+    World world(chunkSize);
+    world.loadArea(cam.position, chunkSize);
+    world.loadChunks();
+    world.remeshChunks();
+    // auto terrainStart     = std::chrono::steady_clock::now();
+    // {
+    //     ZoneScopedN("Terrain Generation");
+    //     Block block = {1, true};
+    //     for (int z1 = -1; z1 < chunkSize; z1++) {
+    //         for (int x1 = -1; x1 < chunkSize; x1++) {
+    //             Chunk* chunk = new Chunk({x1*Consts::CHUNK_SIZE, 0, z1*Consts::CHUNK_SIZE});
+    //             chunk->generateChunk();
+    //             chunks[{x1, 0, z1}] = chunk;
+    //         }
+    //     }
+    // }
+    // auto terrainEnd = std::chrono::steady_clock::now();
+    // {
+    //     ZoneScopedN("Mesh Generation");
+    //     for (auto& [_, chunk] : chunks) {
+    //         if (chunk != nullptr)
+    //             chunk->remesh();
+    //     }
+    // }
+    // auto meshEnd = std::chrono::steady_clock::now();
+    // printf("Terrain generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(terrainEnd - terrainStart).count());
+    // printf("Mesh    generation took %ldms\n", std::chrono::duration_cast<std::chrono::milliseconds>(meshEnd - terrainEnd).count());
     
     Texture texture("res/dev.jpg", GL_RGB);
     basicShader.bind();
@@ -173,11 +177,10 @@ int main(void) {
         basicShader.set("u_MVP", cam.viewProjection);
 
         {
-            ZoneScopedN("Chunk Drawing");
-            for (auto& [_, chunk] : chunks) {
-                if (chunk != nullptr)
-                    chunk->draw();
-            }
+            world.loadArea(cam.position, chunkSize);
+            world.loadChunks();
+            world.remeshChunks();
+            World::drawChunks();
         }
 
         basicShader.refresh();

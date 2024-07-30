@@ -1,16 +1,23 @@
 cmake_minimum_required(VERSION 3.10.2) 
 
-project(voxels)
+project(voxels
+    VERSION 0.0.1
+    DESCRIPTION "Voxel engine"
+    LANGUAGES CXX
+)
 file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h" "src/*.hpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # set(BUILD_SHARED_LIBS OFF)
 # SET (TRACY_ENABLE OFF)
 
+include(CTest)
+add_subdirectory(tests)
 add_subdirectory(libs/GLFW)
 add_subdirectory(libs/GLEW/build/cmake/)
 add_subdirectory(libs/glm)
 add_subdirectory(libs/tracy)
+add_subdirectory(libs/googletest)
 add_library(
     imgui 
     libs/imgui/imgui.cpp
@@ -33,7 +40,8 @@ add_library(
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui TracyClient)
 
-SET (CMAKE_CXX_FLAGS "-std=c++20 -pg -O0") # for profiling
+SET(CMAKE_BUILD_TYPE Debug)
+SET (CMAKE_CXX_FLAGS "-std=c++20 -g -O0") # for profiling
 # SET (CMAKE_CXX_FLAGS "-std=c++20 -g -O2")
 
 

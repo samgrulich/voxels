@@ -8,47 +8,9 @@
 #include "WorldConstants.h"
 
 
+std::mutex chunksMutex;
 std::unordered_map<glm::ivec3, Chunk*> chunks;
 
-Block World::getBlock(int x, int y, int z) {
-    ZoneScoped;
-    int cx = floorf((float)x / Consts::CHUNK_SIZE);
-    int cy = floorf((float)y / Consts::CHUNK_SIZE);
-    int cz = floorf((float)z / Consts::CHUNK_SIZE);
-
-    auto chunk = chunks.find(glm::ivec3(cx, cy, cz));
-    if (chunk == chunks.end()) {
-        return {0, false};
-    }
-    
-    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
-    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
-    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
-    return chunk->second->getBlock(lx, ly, lz, x, y, z);
-}
-
-void World::setBlock(int x, int y, int z, Block block) {
-    ZoneScoped;
-    int cx = floorf((float)x / Consts::CHUNK_SIZE);
-    int cy = floorf((float)y / Consts::CHUNK_SIZE);
-    int cz = floorf((float)z / Consts::CHUNK_SIZE);
-
-    Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
-    if (chunk == nullptr) {
-        chunk = new Chunk({cx*Consts::CHUNK_SIZE, cy*Consts::CHUNK_SIZE, cz*Consts::CHUNK_SIZE});
-        chunks[glm::ivec3(cx, cy, cz)] = chunk;
-    }
-    
-    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
-    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
-    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
-    return chunk->setBlock(lx, ly, lz, block);
-}
-
-void World::removeBlock(int x, int y, int z) {
-    ZoneScoped;
-    setBlock(x, y, z, {0, false});
-}
 
 Chunk::Chunk() {
     ZoneScoped;
@@ -84,8 +46,10 @@ Chunk::~Chunk() {
 }
 
 void Chunk::draw() {
-    GLCall(glBindVertexArray(vao_));
-    GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL));
+    if (!dirty) {
+        GLCall(glBindVertexArray(vao_));
+        GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL));
+    }
 }
 
 void Chunk::remesh() {
@@ -178,6 +142,10 @@ void Chunk::generateChunk() {
     }
 }
 
+glm::ivec3 Chunk::getChunkPos() const {
+    return glm::floor((glm::vec3)position_ / (float)Consts::CHUNK_SIZE);
+}
+
 void Chunk::addFaceXPlane(float x1, float y1, float z1, float x2, float y2, float z2, bool inverted) {
     unsigned int io = vertices_.size() / 6;
     if (inverted) {
@@ -248,6 +216,7 @@ void Chunk::addFaceZPlane(float x1, float y1, float z1, float x2, float y2, floa
 }
 
 void Chunk::uploadMesh() {
+    dirty = false;
     glBindVertexArray(vao_);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo_);
@@ -260,6 +229,169 @@ void Chunk::uploadMesh() {
 inline int Chunk::getBlockIndex(int lx, int ly, int lz) const {
     return lx + ly*Consts::CHUNK_SIZE + lz*Consts::CHUNK_SIZE_POW2;
 }
+
+
+Block World::getBlock(int x, int y, int z) {
+    ZoneScoped;
+    int cx = floorf((float)x / Consts::CHUNK_SIZE);
+    int cy = floorf((float)y / Consts::CHUNK_SIZE);
+    int cz = floorf((float)z / Consts::CHUNK_SIZE);
+
+    auto chunk = chunks.find(glm::ivec3(cx, cy, cz));
+    if (chunk == chunks.end()) {
+        return {0, false};
+    }
+    
+    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
+    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
+    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
+    return chunk->second->getBlock(lx, ly, lz, x, y, z);
+}
+
+void World::setBlock(int x, int y, int z, Block block) {
+    ZoneScoped;
+    int cx = floorf((float)x / Consts::CHUNK_SIZE);
+    int cy = floorf((float)y / Consts::CHUNK_SIZE);
+    int cz = floorf((float)z / Consts::CHUNK_SIZE);
+
+    Chunk* chunk = chunks[glm::ivec3(cx, cy, cz)];
+    if (chunk == nullptr) {
+        chunk = new Chunk({cx*Consts::CHUNK_SIZE, cy*Consts::CHUNK_SIZE, cz*Consts::CHUNK_SIZE});
+        chunks[glm::ivec3(cx, cy, cz)] = chunk;
+    }
+    
+    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
+    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
+    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
+    return chunk->setBlock(lx, ly, lz, block);
+}
+
+    void World::removeBlock(int x, int y, int z) {
+        ZoneScoped;
+        setBlock(x, y, z, {0, false});
+    }
+
+    void World::drawChunks() {
+        ZoneScoped;
+        std::lock_guard<std::mutex> lock(chunksMutex);
+        for (auto& [_, chunk] : chunks) {
+            if (chunk != nullptr)
+                chunk->draw();
+        }
+    }
+
+    void World::loadArea(glm::ivec3 center, int radius) {
+        glm::ivec3 chunkCenter = glm::floor((glm::vec3)center / (float)Consts::CHUNK_SIZE);
+        if (loaded_ && center_ == chunkCenter && radius_ == radius) {
+            return;
+        }
+        
+        glm::ivec3 delta = loaded_ ? chunkCenter - center_ : glm::ivec3{0, 0, 0};
+        // load Chunks
+        // get list of all chunks
+        std::lock_guard<std::mutex> lock2(remeshMutex_);
+        {
+            std::lock_guard<std::mutex> lock1(loadMutex_);
+            for (int z = -radius+1; z < radius; z++) {
+                for (int y = -radius+1; y < radius; y++) {
+                    for (int x = -radius+1; x < radius; x++) {
+                        glm::ivec3 localPos = {x, y, z};
+                        glm::ivec3 globalPos = chunkCenter + localPos;
+                        // leave out the loaded chunks
+                        if (chunks.contains(globalPos)) {
+                            continue;
+                        } 
+                        // add chunk to loading queue
+                        Chunk* chunk = new Chunk(globalPos*Consts::CHUNK_SIZE);
+                        chunks[globalPos] = chunk;
+                        chunksToLoad_.push(chunk);
+                        // flag neighbors to remesh
+                        flagNeighbors(globalPos, delta);
+                    }
+                }
+            }
+        }
+
+        // unload Chunks
+        // loop over all chunks and check if they are within the radius
+        std::lock_guard<std::mutex> lock3(chunksMutex);
+        for (auto& [chunkPos, chunk] : chunks) {
+            if (std::abs(chunkPos.x - chunkCenter.x) > radius || std::abs(chunkPos.y - chunkCenter.y) > radius || std::abs(chunkPos.z - chunkCenter.z) > radius) {
+                delete chunk;
+                chunks.erase(chunkPos);
+                // flag neighbors to remesh
+                flagNeighbors(chunkPos, -delta);
+            }
+        }
+
+    loaded_ = true;
+    center_ = chunkCenter;
+    radius_ = radius;
+}
+
+void World::flagNeighbors(glm::ivec3 chunkPos, glm::ivec3 delta) {
+    if (delta.x != 0) {
+        if (delta.x > 0) {
+            flagChunk({chunkPos.x+1, chunkPos.y, chunkPos.z});
+        } else {
+            flagChunk({chunkPos.x-1, chunkPos.y, chunkPos.z});
+        }
+    }
+    if (delta.y != 0) {
+        if (delta.y > 0) {
+            flagChunk({chunkPos.x, chunkPos.y+1, chunkPos.z});
+        } else {
+            flagChunk({chunkPos.x, chunkPos.y-1, chunkPos.z});
+        }
+    }
+    if (delta.z != 0) {
+        if (delta.z > 0) {
+            flagChunk({chunkPos.x, chunkPos.y, chunkPos.z-1});
+        } else {
+            flagChunk({chunkPos.x, chunkPos.y, chunkPos.z+1});
+        }
+    }
+}
+
+void World::flagChunk(glm::ivec3 chunkPos) {
+    if (chunks.contains(chunkPos) && chunks[chunkPos] != nullptr && !chunks[chunkPos]->dirty) {
+        Chunk* chunk = chunks[chunkPos];
+        chunk->dirty = true;
+        chunksToRemesh_.push(chunk);
+    }
+}
+
+void World::loadChunks() {
+    std::lock_guard<std::mutex> lock(loadMutex_);
+    std::lock_guard<std::mutex> lock2(chunksMutex);
+
+    while (!chunksToLoad_.empty()) {
+        Chunk* chunk = chunksToLoad_.front();
+        chunk->generateChunk();
+        chunksToLoad_.pop();
+        chunksToMesh_.push(chunk);
+    }
+}
+
+void World::remeshChunks() {
+    std::lock_guard<std::mutex> lock(remeshMutex_);
+    std::lock_guard<std::mutex> lock2(chunksMutex);
+
+    while (!chunksToRemesh_.empty()) {
+        Chunk* chunk = chunksToRemesh_.front();
+        chunk->remesh();
+        chunksToRemesh_.pop();
+        chunk->dirty = false;
+    }
+    
+    while (!chunksToMesh_.empty()) {
+        Chunk* chunk = chunksToMesh_.front();
+        chunk->remesh();
+        chunksToMesh_.pop();
+        chunk->dirty = false;
+    }
+}
+
 
 inline Block generateBlock(int x, int y, int z) {
     if (y > 8)
