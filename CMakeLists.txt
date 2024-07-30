@@ -5,14 +5,11 @@ project(voxels
     DESCRIPTION "Voxel engine"
     LANGUAGES CXX
 )
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h" "src/*.hpp")
-add_executable(${PROJECT_NAME} ${SOURCES})
 
 # set(BUILD_SHARED_LIBS OFF)
 # SET (TRACY_ENABLE OFF)
 
 include(CTest)
-add_subdirectory(tests)
 add_subdirectory(libs/GLFW)
 add_subdirectory(libs/GLEW/build/cmake/)
 add_subdirectory(libs/glm)
@@ -35,32 +32,19 @@ add_library(
     libs/imgui/imgui_impl_glfw.cpp
     libs/imgui/imgui_impl_glfw.h
 )
-#file(GLOB V_GLOB LIST_DIRECTORIES true "*")
-
-target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include/")
-target_link_libraries(${PROJECT_NAME} PUBLIC glfw glew glm imgui TracyClient)
-
-SET(CMAKE_BUILD_TYPE Debug)
-SET (CMAKE_CXX_FLAGS "-std=c++20 -g -O0") # for profiling
-# SET (CMAKE_CXX_FLAGS "-std=c++20 -g -O2")
 
 
-# add_subdirectory(src) # add directory with another CMakeLists
+if (NOT CMAKE_BUILD_TYPE) 
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
 
-# install(TARGETS trim DESTINATION bin)
+add_library(cxx_setup INTERFACE) 
+target_compile_options(cxx_setup  INTERFACE -Wall -Wpedantic -Wextra)
+target_compile_features(cxx_setup INTERFACE cxx_std_20)
+target_include_directories(cxx_setup INTERFACE "${PROJECT_SOURCE_DIR}/include/")
+target_include_directories(cxx_setup INTERFACE "${PROJECT_SOURCE_DIR}/src/")
+target_link_libraries(cxx_setup INTERFACE glfw glew glm imgui TracyClient)
 
-
-# link libraries
-# target_include_directories(trim INTERFACE|PRIVATE|PUBLIC ${CMAKE_SOURCE_DIR}/include)
-# target_link_directories(trim INTERFACE|PRIVATE|PUBLIC ${CMAKE_SOURCE_DIR}/lib)
-# target_link_libraries(trim libname.a)
-# target_compile_definitions
-
-# for libs
-# add_library(name STATIC|SHARED source1 source2 ... sourceN)
-
-
-# find_library(varname libname NAME(S) libname1 libname2 ... libnameN DOC "docs for the lib :)" REQUIRED) # where libname1 are other possible names for the library
-# if (${varname} NOT_FOUND) # or (${varname} STREQUAL "varname-NOTFOUND"})
-#     message(FATAL_ERROR "Library not found")
-# endif
+add_subdirectory(src)
+add_subdirectory(execs)
+add_subdirectory(tests)
