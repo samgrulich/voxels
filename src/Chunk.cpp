@@ -43,10 +43,12 @@ Chunk::~Chunk() {
     glDeleteBuffers(1, &ibo_);
     glDeleteBuffers(1, &vbo_);
     glDeleteVertexArrays(1, &vao_);
+
+    delete[] blocks_;
 }
 
 void Chunk::draw() {
-    if (!dirty) {
+    if (!dirty && indices_.size() != 0) {
         GLCall(glBindVertexArray(vao_));
         GLCall(glDrawElements(GL_TRIANGLES, indices_.size(), GL_UNSIGNED_INT, NULL));
     }
@@ -64,7 +66,7 @@ void Chunk::remesh() {
                 int bz = position_.z + z1;
                 uint8_t opaqueBitmask = 0;
                 Block b = getBlock(x1, y1, z1, bx, by, bz);
-
+                
                 if (b.id == 0) {
                     continue;
                 }
@@ -75,7 +77,7 @@ void Chunk::remesh() {
                 const Block bny = getBlock(x1, y1-1, z1, bx, by-1, bz);
                 const Block bpz = getBlock(x1, y1, z1+1, bx, by, bz+1);
                 const Block bnz = getBlock(x1, y1, z1-1, bx, by, bz-1);
-                
+
                 opaqueBitmask |= (!bpx.opaque && b.opaque) ? ADJACENT_BITMASK_POS_X : 0;
                 opaqueBitmask |= (!bnx.opaque && b.opaque) ? ADJACENT_BITMASK_NEG_X : 0;
                 opaqueBitmask |= (!bpy.opaque && b.opaque) ? ADJACENT_BITMASK_POS_Y : 0;
@@ -244,9 +246,13 @@ Block World::getBlock(int x, int y, int z) {
         return {0, false};
     }
     
-    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
-    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
-    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
+    int lx = x % Consts::CHUNK_SIZE;
+    int ly = y % Consts::CHUNK_SIZE;
+    int lz = z % Consts::CHUNK_SIZE;
+    if (lx < 0) lx += Consts::CHUNK_SIZE;
+    if (ly < 0) ly += Consts::CHUNK_SIZE;
+    if (lz < 0) lz += Consts::CHUNK_SIZE;
+
     return chunk->second->getBlock(lx, ly, lz, x, y, z);
 }
 
@@ -262,9 +268,12 @@ void World::setBlock(int x, int y, int z, Block block) {
         chunks[glm::ivec3(cx, cy, cz)] = chunk;
     }
     
-    int lx = (x >= 0) ? x % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + x % Consts::CHUNK_SIZE;
-    int ly = (y >= 0) ? y % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + y % Consts::CHUNK_SIZE;
-    int lz = (z >= 0) ? z % Consts::CHUNK_SIZE : Consts::CHUNK_SIZE-1 + z % Consts::CHUNK_SIZE;
+    int lx = x % Consts::CHUNK_SIZE;
+    int ly = y % Consts::CHUNK_SIZE;
+    int lz = z % Consts::CHUNK_SIZE;
+    if (lx < 0) lx += Consts::CHUNK_SIZE;
+    if (ly < 0) ly += Consts::CHUNK_SIZE;
+    if (lz < 0) lz += Consts::CHUNK_SIZE;
     return chunk->setBlock(lx, ly, lz, block);
 }
 

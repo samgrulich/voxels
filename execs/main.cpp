@@ -106,7 +106,7 @@ int main(void) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // initialize opengl
-    int chunkSize = 8;
+    int chunkSize = 2;
     World world(chunkSize);
     world.loadArea(cam.position, chunkSize);
     world.loadChunks();
@@ -164,7 +164,11 @@ int main(void) {
         if (ImGui::Checkbox("Draw lines", &s_state.drawLines)) {
             changeDrawMode();
         }
+        glm::vec3 blockPos = glm::floor(cam.position);
+        glm::vec3 chunkPos = glm::floor(cam.position / (float)Consts::CHUNK_SIZE);
         ImGui::DragFloat3("Position", &cam.position.x, 0.1f);
+        ImGui::DragFloat3("Block Position", &blockPos.x, 0.1f);
+        ImGui::DragFloat3("Chunk Position", &chunkPos.x, 0.1f);
 
 
         /* Render here */
